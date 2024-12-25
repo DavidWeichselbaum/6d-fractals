@@ -1,7 +1,7 @@
 from time import time
-
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import RectangleSelector
 from numba import njit
 
 
@@ -83,61 +83,72 @@ def compute_fractal(c_z_array, max_iterations=100, escape_radius=2):
     return escape_counts
 
 
-# # # mandelbrot
-# u = [1, 0, 0, 0]
-# v = [0, 1, 0, 0]
-# o = [0, 0, 0, 0]
+# Initial fractal parameters
+# mandelbrot
+u = [1, 0, 0, 0]
+v = [0, 1, 0, 0]
+o = [0, 0, 0, 0]
 
-# # julia
-# # u = [0.45, 0.1428, 1, 0]
-# # v = [0.45, 0.1428, 0, 1]
-# # o = [0.45, 0.1428, 0, 0]
-
-# center = (-0.4, 0)  # Center at the origin
-# rotation = 0  # No rotation
-# scale = 3.0     # Unit scale
-# resolution = (500, 500)  # 5x5 grid
-
-# sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
-# complex_points = np.zeros((resolution[0], resolution[1], 2), dtype=complex)
-# complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
-# complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
-# print(complex_points)
-# print(complex_points.shape)
-
-# t1 = time()
-# fractal = compute_fractal(complex_points)
-# t2 = time()
-# print(t2-t1)
-
-# plt.figure(figsize=(10, 10))
-# plt.imshow(fractal, cmap='inferno')
-# plt.colorbar(label="Iterations")
-# plt.show()
+# julia
+# u = [0.45, 0.1428, 1, 0]
+# v = [0.45, 0.1428, 0, 1]
+# o = [0.45, 0.1428, 0, 0]
 
 
-for i in (2**2, 2**1, 2**-1, 2**-2, 2**-3, 2**-4):
-    u = [1, 0, 0, 0]
-    v = [0, 1, 0, 0]
-    o = [0, 0, 0, 0]
+center = (-0.4, 0)
+rotation = 0
+scale = 3.0
+resolution = (500, 500)
 
-    center = (-1.5, -0.1)  # Center at the origin
-    rotation = 0.1  # No rotation
-    scale = i     # Unit scale
-    resolution = (500, 500)  # 5x5 grid
-
+# GUI functions
+def render_fractal(center, scale, resolution):
     sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
     complex_points = np.zeros((resolution[0], resolution[1], 2), dtype=complex)
     complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
     complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
 
-    t1 = time()
     fractal = compute_fractal(complex_points)
-    t2 = time()
-    print(i)
-    print(t2-t1)
+    return fractal
 
-    plt.figure(figsize=(10, 10))
-    plt.imshow(fractal, cmap='inferno')
-    plt.colorbar(label="Iterations")
-    plt.show()
+def update_view(press = None, release = None):
+    global center, scale
+    if press or release:
+        # Extract rectangle bounds
+        x0, y0 = press.xdata, press.ydata
+        x1, y1 = release.xdata, release.ydata
+
+        # Convert to normalized coordinates
+        cx = (x0 + x1) / 2 / resolution[0] - 0.5
+        cy = (y0 + y1) / 2 / resolution[1] - 0.5
+        center = (center[0] + cx * scale, center[1] + cy * scale)
+        scale *= min(abs(x1 - x0) / resolution[0], abs(y1 - y0) / resolution[1])
+
+    # Update only the image data
+    fractal = render_fractal(center, scale, resolution)
+    image.set_data(fractal)
+    fig.canvas.draw()
+
+def on_key(event):
+    if event.key == 'r':
+        reset_view()
+        update_view()
+
+def reset_view():
+    global center, scale
+    center = (-0.4, 0)
+    scale = 3.0
+
+# Initial render
+fig, ax = plt.subplots(figsize=(10, 10))
+fractal = render_fractal(center, scale, resolution)
+image = ax.imshow(fractal, cmap="inferno")
+rect_selector = RectangleSelector(
+    ax,
+    update_view,
+    interactive=True,  # Corrected argument
+    button=[1]         # Left mouse button
+)
+fig.canvas.mpl_connect('key_press_event', on_key)
+
+plt.colorbar(image, ax=ax, label="Iterations")
+plt.show()
