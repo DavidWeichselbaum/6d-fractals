@@ -42,8 +42,8 @@ def sample_plane(u, v, o, center, rotation, scale, resolution):
     v_r = rotation_matrix[1, 0] * u_s + rotation_matrix[1, 1] * v_s
 
     # Sampling grid
-    s = np.linspace(-0.5, 0.5, w)
-    t = np.linspace(-0.5, 0.5, h)
+    s = np.linspace(-0.5, 0.5, w) + x / scale
+    t = np.linspace(-0.5, 0.5, h) + y / scale
     S, T = np.meshgrid(s, t)
 
     # Compute points in the plane
@@ -83,34 +83,61 @@ def compute_fractal(c_z_array, max_iterations=100, escape_radius=2):
     return escape_counts
 
 
-# # mandelbrot
+# # # mandelbrot
 # u = [1, 0, 0, 0]
 # v = [0, 1, 0, 0]
 # o = [0, 0, 0, 0]
 
-# julia
-u = [0.45, 0.1428, 1, 0]
-v = [0.45, 0.1428, 0, 1]
-o = [0.45, 0.1428, 0, 0]
+# # julia
+# # u = [0.45, 0.1428, 1, 0]
+# # v = [0.45, 0.1428, 0, 1]
+# # o = [0.45, 0.1428, 0, 0]
 
-center = (0, 0)  # Center at the origin
-rotation = 0.0  # No rotation
-scale = 4     # Unit scale
-resolution = (500, 500)  # 5x5 grid
+# center = (-0.4, 0)  # Center at the origin
+# rotation = 0  # No rotation
+# scale = 3.0     # Unit scale
+# resolution = (500, 500)  # 5x5 grid
 
-sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
-complex_points = np.zeros((resolution[0], resolution[1], 2), dtype=complex)
-complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
-complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
-print(complex_points)
-print(complex_points.shape)
+# sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
+# complex_points = np.zeros((resolution[0], resolution[1], 2), dtype=complex)
+# complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
+# complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
+# print(complex_points)
+# print(complex_points.shape)
 
-t1 = time()
-fractal = compute_fractal(complex_points)
-t2 = time()
-print(t2-t1)
+# t1 = time()
+# fractal = compute_fractal(complex_points)
+# t2 = time()
+# print(t2-t1)
 
-plt.figure(figsize=(10, 10))
-plt.imshow(fractal, cmap='inferno')
-plt.colorbar(label="Iterations")
-plt.show()
+# plt.figure(figsize=(10, 10))
+# plt.imshow(fractal, cmap='inferno')
+# plt.colorbar(label="Iterations")
+# plt.show()
+
+
+for i in (2**2, 2**1, 2**-1, 2**-2, 2**-3, 2**-4):
+    u = [1, 0, 0, 0]
+    v = [0, 1, 0, 0]
+    o = [0, 0, 0, 0]
+
+    center = (-1.5, -0.1)  # Center at the origin
+    rotation = 0.1  # No rotation
+    scale = i     # Unit scale
+    resolution = (500, 500)  # 5x5 grid
+
+    sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
+    complex_points = np.zeros((resolution[0], resolution[1], 2), dtype=complex)
+    complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
+    complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
+
+    t1 = time()
+    fractal = compute_fractal(complex_points)
+    t2 = time()
+    print(i)
+    print(t2-t1)
+
+    plt.figure(figsize=(10, 10))
+    plt.imshow(fractal, cmap='inferno')
+    plt.colorbar(label="Iterations")
+    plt.show()
