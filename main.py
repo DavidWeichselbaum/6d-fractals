@@ -23,6 +23,7 @@ def sample_plane(u, v, o, center, rotation, scale, resolution):
     """
     w, h = resolution
     x, y = center
+    n_components = len(u)
 
     # Compute vectors spanning the plane
     u_prime = np.array(u) - np.array(o)
@@ -47,12 +48,18 @@ def sample_plane(u, v, o, center, rotation, scale, resolution):
     S, T = np.meshgrid(s, t)
 
     # Compute points in the plane
-    points = np.zeros((h, w, u_prime.shape[-1]))
+    points = np.zeros((h, w, n_components))
     for i in range(h):
         for j in range(w):
             points[i, j, :] = np.array(o) + S[i, j] * u_r + T[i, j] * v_r
 
-    return points
+    # Convert to complex points
+    complex_points = np.zeros((resolution[0], resolution[1], n_components // 2), dtype=complex)
+    for i in range(n_components // 2):
+        real_part = points[..., i*2]
+        imaginary_part = points[..., i*2+1]
+        complex_points[..., i] = real_part + 1j * imaginary_part
+    return complex_points
 
 
 @njit
@@ -112,13 +119,8 @@ iteration_growth = 20
 # GUI functions
 def render_fractal(center, scale, resolution):
     sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
-    complex_points = np.zeros((resolution[0], resolution[1], 3), dtype=complex)
-    complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
-    complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
-    complex_points[..., 2] = sampled_points[..., 4] + 1j * sampled_points[..., 5]
-
     max_iterations = start_iterations + iteration_growth * np.log(1/scale)
-    fractal = compute_fractal(complex_points, max_iterations=max_iterations)
+    fractal = compute_fractal(sampled_points, max_iterations=max_iterations)
     return fractal
 
 def update_view(press = None, release = None):
