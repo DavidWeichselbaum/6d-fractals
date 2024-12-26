@@ -47,7 +47,7 @@ def sample_plane(u, v, o, center, rotation, scale, resolution):
     S, T = np.meshgrid(s, t)
 
     # Compute points in the plane
-    points = np.zeros((h, w, 4))
+    points = np.zeros((h, w, u_prime.shape[-1]))
     for i in range(h):
         for j in range(w):
             points[i, j, :] = np.array(o) + S[i, j] * u_r + T[i, j] * v_r
@@ -73,10 +73,12 @@ def compute_fractal(c_z_array, max_iterations=100, escape_radius=2):
 
     for i in range(height):
         for j in range(width):
-            c, z = c_z_array[i, j]
+            c, z, e = c_z_array[i, j]
             count = 0
             while abs(z) <= escape_radius and count < max_iterations:
-                z = z**2 + c
+                if not z:
+                    z = c
+                z = z**e + c
                 count += 1
             escape_counts[i, j] = count
 
@@ -85,14 +87,14 @@ def compute_fractal(c_z_array, max_iterations=100, escape_radius=2):
 
 # Initial fractal parameters
 # mandelbrot
-u = [1, 0, 0, 0]
-v = [0, 1, 0, 0]
-o = [0, 0, 0, 0]
+u = [1, 0, 0, 0, 2, 0]
+v = [0, 1, 0, 0, 2, 0]
+o = [0, 0, 0, 0, 2, 0]
 
 # julia
-# u = [0.45, 0.1428, 1, 0]
-# v = [0.45, 0.1428, 0, 1]
-# o = [0.45, 0.1428, 0, 0]
+# u = [0.45, 0.1428, 1, 0, 2, 0]
+# v = [0.45, 0.1428, 0, 1, 2, 0]
+# o = [0.45, 0.1428, 0, 0, 2, 0]
 
 
 center = (-0.4, 0)
@@ -105,12 +107,12 @@ iteration_growth = 20
 # GUI functions
 def render_fractal(center, scale, resolution):
     sampled_points = sample_plane(u, v, o, center, rotation, scale, resolution)
-    complex_points = np.zeros((resolution[0], resolution[1], 2), dtype=complex)
+    complex_points = np.zeros((resolution[0], resolution[1], 3), dtype=complex)
     complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
     complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
+    complex_points[..., 2] = sampled_points[..., 4] + 1j * sampled_points[..., 5]
 
     max_iterations = start_iterations + iteration_growth * np.log(1/scale)
-    print(max_iterations)
     fractal = compute_fractal(complex_points, max_iterations=max_iterations)
     return fractal
 
