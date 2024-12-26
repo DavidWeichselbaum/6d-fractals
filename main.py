@@ -99,6 +99,8 @@ center = (-0.4, 0)
 rotation = 0
 scale = 3.0
 resolution = (500, 500)
+start_iterations = 100
+iteration_growth = 20
 
 # GUI functions
 def render_fractal(center, scale, resolution):
@@ -107,7 +109,9 @@ def render_fractal(center, scale, resolution):
     complex_points[..., 0] = sampled_points[..., 0] + 1j * sampled_points[..., 1]
     complex_points[..., 1] = sampled_points[..., 2] + 1j * sampled_points[..., 3]
 
-    fractal = compute_fractal(complex_points)
+    max_iterations = start_iterations + iteration_growth * np.log(1/scale)
+    print(max_iterations)
+    fractal = compute_fractal(complex_points, max_iterations=max_iterations)
     return fractal
 
 def update_view(press = None, release = None):
@@ -126,6 +130,11 @@ def update_view(press = None, release = None):
     # Update only the image data
     fractal = render_fractal(center, scale, resolution)
     image.set_data(fractal)
+
+    # Update the color bar limits dynamically
+    image.set_clim(vmin=fractal.min(), vmax=fractal.max())
+    colorbar.update_normal(image)
+
     fig.canvas.draw()
 
 def on_key(event):
@@ -142,6 +151,8 @@ def reset_view():
 fig, ax = plt.subplots(figsize=(10, 10))
 fractal = render_fractal(center, scale, resolution)
 image = ax.imshow(fractal, cmap="inferno")
+colorbar = plt.colorbar(image, ax=ax, label="Iterations")
+
 rect_selector = RectangleSelector(
     ax,
     update_view,
@@ -150,5 +161,4 @@ rect_selector = RectangleSelector(
 )
 fig.canvas.mpl_connect('key_press_event', on_key)
 
-plt.colorbar(image, ax=ax, label="Iterations")
 plt.show()
