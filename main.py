@@ -55,24 +55,28 @@ class FractalRenderer:
         v_prime = v_prime - np.dot(v_prime, u_prime) * u_prime
         v_prime = v_prime / np.linalg.norm(v_prime)
 
-        # Scale and rotate
-        u_s = scale * u_prime
-        v_s = scale * v_prime
+        # Sampling grid
+        s = np.linspace(-0.5, 0.5, w)
+        t = np.linspace(-0.5, 0.5, h)
+        S, T = np.meshgrid(s, t)
+
+        # Rotate, scale, translate
         rotation_matrix = np.array([[np.cos(rotation), -np.sin(rotation)],
                                      [np.sin(rotation),  np.cos(rotation)]])
-        u_r = rotation_matrix[0, 0] * u_s + rotation_matrix[0, 1] * v_s
-        v_r = rotation_matrix[1, 0] * u_s + rotation_matrix[1, 1] * v_s
-
-        # Sampling grid
-        s = np.linspace(-0.5, 0.5, w) + x / scale
-        t = np.linspace(-0.5, 0.5, h) + y / scale
-        S, T = np.meshgrid(s, t)
+        points = np.vstack([S.ravel(), T.ravel()])  # Shape (2, N)
+        rotated_points = rotation_matrix @ points  # Matrix multiplication
+        S = rotated_points[0, :].reshape(S.shape)
+        T = rotated_points[1, :].reshape(T.shape)
+        S = S * scale
+        T = T * scale
+        S = S + x
+        T = T + y
 
         # Compute points in the plane
         points = np.zeros((h, w, n_components))
         for i in range(h):
             for j in range(w):
-                points[i, j, :] = np.array(o) + S[i, j] * u_r + T[i, j] * v_r
+                points[i, j, :] = np.array(o) + S[i, j] * u_prime + T[i, j] * v_prime
 
         # Convert to complex points
         complex_points = np.zeros((resolution[0], resolution[1], n_components // 2), dtype=complex)
