@@ -87,19 +87,24 @@ def compute_fractal(c_z_array, max_iterations=100, escape_radius=2):
 
 # Initial fractal parameters
 # mandelbrot
-u = [1, 0, 0, 0, 2, 0]
-v = [0, 1, 0, 0, 2, 0]
-o = [0, 0, 0, 0, 2, 0]
+# u = [1, 0, 0, 0, 2, 0]
+# v = [0, 1, 0, 0, 2, 0]
+# o = [0, 0, 0, 0, 2, 0]
 
 # julia
 # u = [0.45, 0.1428, 1, 0, 2, 0]
 # v = [0.45, 0.1428, 0, 1, 2, 0]
 # o = [0.45, 0.1428, 0, 0, 2, 0]
 
+# expulia
+u = [0.45, 0.1428, 0, 0, 2, 0]
+v = [0.45, 0.1428, 0, 0, 0, 0]
+o = [0.45, 0.1428, 0, 0, 0, 2]
+
 
 center = (-0.4, 0)
 rotation = 0
-scale = 3.0
+scale = 4.0
 resolution = (500, 500)
 start_iterations = 100
 iteration_growth = 20
