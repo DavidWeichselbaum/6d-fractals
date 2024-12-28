@@ -22,8 +22,9 @@ class FractalSettings:
 
 class FractalRenderer:
     def __init__(self, settings):
-        self.initial_settings = settings
-        self.settings = deepcopy(self.initial_settings)
+        self.settings = settings
+        self.history = [deepcopy(self.settings)]
+
         self.fig, self.ax = None, None
         self.image, self.colorbar = None, None
         self.rect_selector = None
@@ -110,9 +111,13 @@ class FractalRenderer:
 
     def render_fractal(self):
         """Generate fractal data for the current settings."""
+        t1 = time()
+
         sampled_points = self.sample_plane()
         max_iterations = self.settings.start_iterations + self.settings.iteration_growth * np.log(1 / self.settings.scale)
         fractal = self.compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=self.settings.escape_radius)
+        t2 = time()
+        print(f"{t2-t1:.2f} sec, {max_iterations:.0f} its,  {(t2-t1)/max_iterations:.2f} it/sec")
         return fractal
 
     def update_view(self, press=None, release=None):
@@ -132,6 +137,9 @@ class FractalRenderer:
             self.settings.scale *= min(abs(x1 - x0) / self.settings.resolution[0], abs(y1 - y0) / self.settings.resolution[1])
 
         fractal = self.render_fractal()
+
+        self.history.append(deepcopy(self.settings))
+
         self.image.set_data(fractal)
         self.image.set_clim(vmin=fractal.min(), vmax=fractal.max())
         self.colorbar.update_normal(self.image)
@@ -139,7 +147,17 @@ class FractalRenderer:
 
     def reset_view(self):
         """Reset fractal view to initial settings."""
-        self.settings = deepcopy(self.initial_settings)
+        self.settings = self.history[0]
+        self.history = self.history[:1]
+
+    def go_back(self):
+        """Go back in history."""
+        if len(self.history) <= 1:
+            print("Can't go back")
+            return
+
+        self.settings = self.history[-2]
+        self.history = self.history[:-2]
 
     def on_key(self, event):
         """Handle key press events."""
@@ -170,6 +188,9 @@ class FractalRenderer:
             self.update_view()
         elif event.key == 'home':
             self.reset_view()
+            self.update_view()
+        elif event.key == 'backspace':
+            self.go_back()
             self.update_view()
 
     def draw(self):
