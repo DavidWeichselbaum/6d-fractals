@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
-from numba import njit
+from numba import njit, prange
 from copy import deepcopy
 
 
@@ -93,7 +93,7 @@ class FractalRenderer:
         return complex_points
 
     @staticmethod
-    @njit
+    @njit(parallel=True)
     def compute_fractal(c_z_e_array, max_iterations=100, escape_radius=2):
         """
         Compute a fractal based on the formula z = z^e + c.
@@ -101,7 +101,7 @@ class FractalRenderer:
         height, width, _ = c_z_e_array.shape
         escape_counts = np.zeros((height, width), dtype=np.int32)
 
-        for i in range(height):
+        for i in prange(height):  # parallelized
             for j in range(width):
                 c, z, e = c_z_e_array[i, j]
                 count = 0
