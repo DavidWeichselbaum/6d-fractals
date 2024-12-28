@@ -6,6 +6,7 @@ from matplotlib.widgets import RectangleSelector
 from numba import njit
 from copy import deepcopy
 
+
 @dataclass
 class FractalSettings:
     name: str
@@ -20,7 +21,11 @@ class FractalSettings:
     iteration_growth: int
     escape_radius: float
 
+
 class FractalRenderer:
+
+    MIN_RECTANGLE = (5, 5)
+
     def __init__(self, settings):
         self.settings = settings
         self.history = [deepcopy(self.settings)]
@@ -127,6 +132,12 @@ class FractalRenderer:
             x0, y0 = press.xdata, press.ydata
             x1, y1 = release.xdata, release.ydata
 
+            width_pixels = x1 - x0
+            height_pixels = y1 - y0
+            if width_pixels < self.MIN_RECTANGLE[0] or height_pixels < self.MIN_RECTANGLE[1]:
+                print("Selection too small!")
+                return
+
             # Convert to normalized coordinates
             cx = (x0 + x1) / 2 / self.settings.resolution[0] - 0.5
             cy = (y0 + y1) / 2 / self.settings.resolution[1] - 0.5
@@ -208,6 +219,7 @@ class FractalRenderer:
         )
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         plt.show()
+
 
 mandelbrot_settings = FractalSettings(
     name="Mandelbrot",
