@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
 from numba import njit, prange
 from copy import deepcopy
+from pprint import pprint
 
 
 @dataclass
 class FractalSettings:
     name: str
-    u: list  # point 1
+    u: list  # vector 1
     o: list  # origin
     v: list  # point 2
     center: tuple
@@ -170,39 +171,52 @@ class FractalRenderer:
         self.settings = self.history[-2]
         self.history = self.history[:-2]
 
+    def randomize_settings(self):
+        self.settings = FractalSettings(
+            name="Random",
+            u=np.random.random(6) * 4 -2,
+            o=np.random.random(6) * 4 -2,
+            v=np.random.random(6) * 4 -2,
+            center=(-0.4, 0),
+            rotation=0,
+            scale=16.0,
+            resolution=(500, 500),
+            start_iterations=100,
+            iteration_growth=20,
+            escape_radius=2.0
+        )
+        pprint(self.settings)
+
     def on_key(self, event):
         """Handle key press events."""
-        step = self.settings.scale * 0.1
-        if event.key == 'w':
-            self.settings.center = (self.settings.center[0], self.settings.center[1] - step)
-            self.update_view()
-        elif event.key == 's':
-            self.settings.center = (self.settings.center[0], self.settings.center[1] + step)
-            self.update_view()
-        elif event.key == 'a':
-            self.settings.center = (self.settings.center[0] - step, self.settings.center[1])
-            self.update_view()
-        elif event.key == 'd':
-            self.settings.center = (self.settings.center[0] + step, self.settings.center[1])
-            self.update_view()
+        if event.key == 'escape':
+            exit()
+        elif event.key in 'wasd':
+            step = self.settings.scale * 0.1
+            if event.key == 'w':
+                self.settings.center = (self.settings.center[0], self.settings.center[1] - step)
+            elif event.key == 's':
+                self.settings.center = (self.settings.center[0], self.settings.center[1] + step)
+            elif event.key == 'a':
+                self.settings.center = (self.settings.center[0] - step, self.settings.center[1])
+            elif event.key == 'd':
+                self.settings.center = (self.settings.center[0] + step, self.settings.center[1])
         elif event.key == 'q':
             self.settings.scale *= 1.1
-            self.update_view()
         elif event.key == 'e':
             self.settings.scale /= 1.1
-            self.update_view()
         elif event.key == 'f':
             self.settings.rotation += np.pi / 16
-            self.update_view()
         elif event.key == 'r':
             self.settings.rotation -= np.pi / 16
-            self.update_view()
         elif event.key == 'home':
             self.reset_view()
-            self.update_view()
         elif event.key == 'backspace':
             self.go_back()
-            self.update_view()
+        if event.key == 'x':
+            self.randomize_settings()
+
+        self.update_view()
 
     def draw(self):
         """Set up the Matplotlib plot and event handlers."""
@@ -279,5 +293,5 @@ expulia_corner_settings = FractalSettings(
     escape_radius=2.0
 )
 
-renderer = FractalRenderer(expulia_settings)
+renderer = FractalRenderer(expulia_corner_settings)
 renderer.draw()
