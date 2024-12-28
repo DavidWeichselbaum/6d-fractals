@@ -217,6 +217,8 @@ class FractalRenderer:
             interactive=True,
             button=[1]  # Left mouse button
         )
+
+        self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         plt.show()
 
