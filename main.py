@@ -10,9 +10,9 @@ from copy import deepcopy
 @dataclass
 class FractalSettings:
     name: str
-    u: list
-    v: list
-    o: list
+    u: list  # point 1
+    o: list  # origin
+    v: list  # point 2
     center: tuple
     rotation: float
     scale: float
@@ -38,10 +38,10 @@ class FractalRenderer:
         """
         Sample a 2D plane in R^4 defined by three points: u, v, and o (origin point).
         """
-        u, v, o, center, rotation, scale, resolution = (
+        u, o, v, center, rotation, scale, resolution = (
             self.settings.u,
-            self.settings.v,
             self.settings.o,
+            self.settings.v,
             self.settings.center,
             self.settings.rotation,
             self.settings.scale,
@@ -226,8 +226,8 @@ class FractalRenderer:
 mandelbrot_settings = FractalSettings(
     name="Mandelbrot",
     u = [1, 0, 0, 0, 2, 0],
-    v = [0, 1, 0, 0, 2, 0],
     o = [0, 0, 0, 0, 2, 0],
+    v = [0, 1, 0, 0, 2, 0],
     center=(-0.4, 0),
     rotation=0,
     scale=4.0,
@@ -240,8 +240,8 @@ mandelbrot_settings = FractalSettings(
 julia_settings = FractalSettings(
     name="Julia",
     u = [0.45, 0.1428, 1, 0, 2, 0],
-    v = [0.45, 0.1428, 0, 1, 2, 0],
     o = [0.45, 0.1428, 0, 0, 2, 0],
+    v = [0.45, 0.1428, 0, 1, 2, 0],
     center=(-0.4, 0),
     rotation=0,
     scale=4.0,
@@ -254,8 +254,22 @@ julia_settings = FractalSettings(
 expulia_settings = FractalSettings(
     name="Expulia",
     u=[0.45, 0.1428, 0, 0, 2, 0],
-    v=[0.45, 0.1428, 0, 0, 0, 0],
+    o=[0.45, 0.1428, 0, 0, 0, 0],
+    v=[0.45, 0.1428, 0, 0, 0, 2],
+    center=(-0.4, 0),
+    rotation=0,
+    scale=16.0,
+    resolution=(500, 500),
+    start_iterations=100,
+    iteration_growth=20,
+    escape_radius=2.0
+)
+
+expulia_corner_settings = FractalSettings(
+    name="Expulia Corner",
+    u=[0.45, 0.1428, 0, 0, 2, 0],
     o=[0.45, 0.1428, 0, 0, 0, 2],
+    v=[0.45, 0.1428, 0, 0, 0, 0],
     center=(-0.4, 0),
     rotation=0,
     scale=16.0,
