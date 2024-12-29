@@ -187,6 +187,17 @@ class FractalRenderer:
         )
         pprint(self.settings)
 
+    def perturb_settings(self):
+        u_p = np.random.random(6) * 0.2 -0.1
+        o_p = np.random.random(6) * 0.2 -0.1
+        v_p = np.random.random(6) * 0.2 -0.1
+        print(u_p, self.settings.u)
+        print(u_p.shape, self.settings.u.shape)
+        self.settings.u += u_p
+        self.settings.o += o_p
+        self.settings.v += v_p
+        print(self.settings)
+
     def on_key(self, event):
         """Handle key press events."""
         if event.key == 'escape':
@@ -215,6 +226,8 @@ class FractalRenderer:
             self.go_back()
         if event.key == 'x':
             self.randomize_settings()
+        if event.key == 'z':
+            self.perturb_settings()
 
         self.update_view()
 
@@ -239,9 +252,9 @@ class FractalRenderer:
 
 mandelbrot_settings = FractalSettings(
     name="Mandelbrot",
-    u = [1, 0, 0, 0, 2, 0],
-    o = [0, 0, 0, 0, 2, 0],
-    v = [0, 1, 0, 0, 2, 0],
+    u = np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
+    o = np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
+    v = np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
     center=(-0.4, 0),
     rotation=0,
     scale=4.0,
@@ -253,9 +266,9 @@ mandelbrot_settings = FractalSettings(
 
 julia_settings = FractalSettings(
     name="Julia",
-    u = [0.45, 0.1428, 1, 0, 2, 0],
-    o = [0.45, 0.1428, 0, 0, 2, 0],
-    v = [0.45, 0.1428, 0, 1, 2, 0],
+    u = np.array([0.45, 0.1428, 1, 0, 2, 0]),
+    o = np.array([0.45, 0.1428, 0, 0, 2, 0]),
+    v = np.array([0.45, 0.1428, 0, 1, 2, 0]),
     center=(-0.4, 0),
     rotation=0,
     scale=4.0,
@@ -267,9 +280,9 @@ julia_settings = FractalSettings(
 
 expulia_settings = FractalSettings(
     name="Expulia",
-    u=[0.45, 0.1428, 0, 0, 2, 0],
-    o=[0.45, 0.1428, 0, 0, 0, 0],
-    v=[0.45, 0.1428, 0, 0, 0, 2],
+    u=np.array([0.45, 0.1428, 0, 0, 2, 0]),
+    o=np.array([0.45, 0.1428, 0, 0, 0, 0]),
+    v=np.array([0.45, 0.1428, 0, 0, 0, 2]),
     center=(-0.4, 0),
     rotation=0,
     scale=16.0,
@@ -281,9 +294,9 @@ expulia_settings = FractalSettings(
 
 expulia_corner_settings = FractalSettings(
     name="Expulia Corner",
-    u=[0.45, 0.1428, 0, 0, 2, 0],
-    o=[0.45, 0.1428, 0, 0, 0, 2],
-    v=[0.45, 0.1428, 0, 0, 0, 0],
+    u=np.array([0.45, 0.1428, 0, 0, 2, 0]),
+    o=np.array([0.45, 0.1428, 0, 0, 0, 2]),
+    v=np.array([0.45, 0.1428, 0, 0, 0, 0]),
     center=(-0.4, 0),
     rotation=0,
     scale=16.0,
@@ -293,5 +306,5 @@ expulia_corner_settings = FractalSettings(
     escape_radius=2.0
 )
 
-renderer = FractalRenderer(expulia_corner_settings)
+renderer = FractalRenderer(mandelbrot_settings)
 renderer.draw()
