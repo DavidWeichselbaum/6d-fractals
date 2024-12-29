@@ -7,7 +7,8 @@ from numba import njit, prange
 from copy import deepcopy
 from pprint import pprint
 
-RESOLUTION = (800, 800)
+
+RESOLUTION = (1000, 800)
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
@@ -63,7 +64,8 @@ class FractalRenderer:
         v_prime = v_prime / np.linalg.norm(v_prime)
 
         # Sampling grid
-        s = np.linspace(-0.5, 0.5, w)
+        aspect_ratio = w / h
+        s = np.linspace(-0.5 * aspect_ratio, 0.5 * aspect_ratio, w)
         t = np.linspace(-0.5, 0.5, h)
         S, T = np.meshgrid(s, t)
 
@@ -86,7 +88,7 @@ class FractalRenderer:
                 points[i, j, :] = np.array(o) + S[i, j] * u_prime + T[i, j] * v_prime
 
         # Convert to complex points
-        complex_points = np.zeros((RESOLUTION[0], RESOLUTION[1], n_components // 2), dtype=complex)
+        complex_points = np.zeros((h, w, n_components // 2), dtype=complex)
         for i in range(n_components // 2):
             real_part = points[..., i*2]
             imaginary_part = points[..., i*2+1]
@@ -128,39 +130,42 @@ class FractalRenderer:
     def update_view(self, press=None, release=None):
         """Update fractal view based on rectangle selection or re-render."""
         if press and release:
-            # Extract rectangle bounds
-            x0, y0 = press.xdata, press.ydata
-            x1, y1 = release.xdata, release.ydata
-
-            width_pixels = x1 - x0
-            height_pixels = y1 - y0
-            if width_pixels < self.MIN_RECTANGLE[0] or height_pixels < self.MIN_RECTANGLE[1]:
-                print("Selection too small!")
-                return
-
-            # Convert to normalized coordinates
-            cx = (x0 + x1) / 2 / RESOLUTION[0] - 0.5
-            cy = (y0 + y1) / 2 / RESOLUTION[1] - 0.5
-            self.settings.center = (
-                self.settings.center[0] + cx * self.settings.scale,
-                self.settings.center[1] + cy * self.settings.scale
-            )
-            self.settings.scale *= min(abs(x1 - x0) / RESOLUTION[0], abs(y1 - y0) / RESOLUTION[1])
+            self.handle_selection(press, release)
 
         escape_counts = self.settings.escape_counts
         if escape_counts is None:
             escape_counts = self.render_fractal()
         else:
-            self.settings.escape_counts = None
-
-        history_settings = deepcopy(self.settings)
-        history_settings.escape_counts = escape_counts
-        self.history.append(history_settings)
+            self.settings.escape_counts = None  # make historic settings changeable again
 
         self.image.set_data(escape_counts)
         self.image.set_clim(vmin=escape_counts.min(), vmax=escape_counts.max())
         self.colorbar.update_normal(self.image)
         self.fig.canvas.draw()
+
+        history_settings = deepcopy(self.settings)
+        history_settings.escape_counts = escape_counts
+        self.history.append(history_settings)
+
+    def handle_selection(self, press, release):
+        # Extract rectangle bounds
+        x0, y0 = press.xdata, press.ydata
+        x1, y1 = release.xdata, release.ydata
+
+        width_pixels = x1 - x0
+        height_pixels = y1 - y0
+        if width_pixels < self.MIN_RECTANGLE[0] or height_pixels < self.MIN_RECTANGLE[1]:
+            print("Selection too small!")
+            return
+
+        # Convert to normalized coordinates
+        cx = (x0 + x1) / 2 / RESOLUTION[0] - 0.5
+        cy = (y0 + y1) / 2 / RESOLUTION[1] - 0.5
+        self.settings.center = (
+            self.settings.center[0] + cx * self.settings.scale,
+            self.settings.center[1] + cy * self.settings.scale
+        )
+        self.settings.scale *= min(abs(x1 - x0) / RESOLUTION[0], abs(y1 - y0) / RESOLUTION[1])
 
     def reset_view(self):
         """Reset fractal view to initial settings."""
