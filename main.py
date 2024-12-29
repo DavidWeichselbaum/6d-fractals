@@ -7,20 +7,20 @@ from numba import njit, prange
 from copy import deepcopy
 from pprint import pprint
 
+RESOLUTION = (800, 800)
+START_ITERATIONS = 100
+ITERATION_GROWTH = 20
+ESCAPE_RADIUS = 2.0
+
 
 @dataclass
 class FractalSettings:
-    name: str
     u: list  # vector 1
     o: list  # origin
     v: list  # point 2
     center: tuple
     rotation: float
     scale: float
-    resolution: tuple
-    start_iterations: int
-    iteration_growth: int
-    escape_radius: float
     escape_counts: np.ndarray | None = None
 
 
@@ -40,17 +40,16 @@ class FractalRenderer:
         """
         Sample a 2D plane in R^4 defined by three points: u, v, and o (origin point).
         """
-        u, o, v, center, rotation, scale, resolution = (
+        u, o, v, center, rotation, scale = (
             self.settings.u,
             self.settings.o,
             self.settings.v,
             self.settings.center,
             self.settings.rotation,
             self.settings.scale,
-            self.settings.resolution,
         )
 
-        w, h = resolution
+        w, h = RESOLUTION
         x, y = center
         n_components = len(u)
 
@@ -87,7 +86,7 @@ class FractalRenderer:
                 points[i, j, :] = np.array(o) + S[i, j] * u_prime + T[i, j] * v_prime
 
         # Convert to complex points
-        complex_points = np.zeros((resolution[0], resolution[1], n_components // 2), dtype=complex)
+        complex_points = np.zeros((RESOLUTION[0], RESOLUTION[1], n_components // 2), dtype=complex)
         for i in range(n_components // 2):
             real_part = points[..., i*2]
             imaginary_part = points[..., i*2+1]
@@ -120,8 +119,8 @@ class FractalRenderer:
         """Generate fractal data for the current settings."""
         t1 = time()
         sampled_points = self.sample_plane()
-        max_iterations = self.settings.start_iterations + self.settings.iteration_growth * np.log(1 / self.settings.scale)
-        escape_counts = self.compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=self.settings.escape_radius)
+        max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
+        escape_counts = self.compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=ESCAPE_RADIUS)
         t2 = time()
         print(f"{t2-t1:.2f} sec, {max_iterations:.0f} its,  {(t2-t1)/max_iterations:.2f} it/sec")
         return escape_counts
@@ -140,13 +139,13 @@ class FractalRenderer:
                 return
 
             # Convert to normalized coordinates
-            cx = (x0 + x1) / 2 / self.settings.resolution[0] - 0.5
-            cy = (y0 + y1) / 2 / self.settings.resolution[1] - 0.5
+            cx = (x0 + x1) / 2 / RESOLUTION[0] - 0.5
+            cy = (y0 + y1) / 2 / RESOLUTION[1] - 0.5
             self.settings.center = (
                 self.settings.center[0] + cx * self.settings.scale,
                 self.settings.center[1] + cy * self.settings.scale
             )
-            self.settings.scale *= min(abs(x1 - x0) / self.settings.resolution[0], abs(y1 - y0) / self.settings.resolution[1])
+            self.settings.scale *= min(abs(x1 - x0) / RESOLUTION[0], abs(y1 - y0) / RESOLUTION[1])
 
         escape_counts = self.settings.escape_counts
         if escape_counts is None:
@@ -179,17 +178,12 @@ class FractalRenderer:
 
     def randomize_settings(self):
         self.settings = FractalSettings(
-            name="Random",
             u=np.random.random(6) * 4 -2,
             o=np.random.random(6) * 4 -2,
             v=np.random.random(6) * 4 -2,
             center=(-0.4, 0),
             rotation=0,
             scale=16.0,
-            resolution=(500, 500),
-            start_iterations=100,
-            iteration_growth=20,
-            escape_radius=2.0
         )
         pprint(self.settings)
 
@@ -241,6 +235,8 @@ class FractalRenderer:
         escape_counts = self.render_fractal()
         self.image = self.ax.imshow(escape_counts, cmap="inferno")
         self.colorbar = plt.colorbar(self.image, ax=self.ax, label="Iterations")
+        self.ax.axis('off')
+        plt.tight_layout()
 
         self.rect_selector = RectangleSelector(
             self.ax,
@@ -255,59 +251,39 @@ class FractalRenderer:
 
 
 mandelbrot_settings = FractalSettings(
-    name="Mandelbrot",
     u = np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
     o = np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
     v = np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
     center=(-0.4, 0),
     rotation=0,
     scale=4.0,
-    resolution=(500, 500),
-    start_iterations=100,
-    iteration_growth=20,
-    escape_radius=2.0
 )
 
 julia_settings = FractalSettings(
-    name="Julia",
     u = np.array([0.45, 0.1428, 1, 0, 2, 0]),
     o = np.array([0.45, 0.1428, 0, 0, 2, 0]),
     v = np.array([0.45, 0.1428, 0, 1, 2, 0]),
     center=(-0.4, 0),
     rotation=0,
     scale=4.0,
-    resolution=(500, 500),
-    start_iterations=100,
-    iteration_growth=20,
-    escape_radius=2.0
 )
 
 expulia_settings = FractalSettings(
-    name="Expulia",
     u=np.array([0.45, 0.1428, 0, 0, 2, 0]),
     o=np.array([0.45, 0.1428, 0, 0, 0, 0]),
     v=np.array([0.45, 0.1428, 0, 0, 0, 2]),
     center=(-0.4, 0),
     rotation=0,
     scale=16.0,
-    resolution=(500, 500),
-    start_iterations=100,
-    iteration_growth=20,
-    escape_radius=2.0
 )
 
 expulia_corner_settings = FractalSettings(
-    name="Expulia Corner",
     u=np.array([0.45, 0.1428, 0, 0, 2, 0]),
     o=np.array([0.45, 0.1428, 0, 0, 0, 2]),
     v=np.array([0.45, 0.1428, 0, 0, 0, 0]),
     center=(-0.4, 0),
     rotation=0,
     scale=16.0,
-    resolution=(500, 500),
-    start_iterations=100,
-    iteration_growth=20,
-    escape_radius=2.0
 )
 
 renderer = FractalRenderer(mandelbrot_settings)
