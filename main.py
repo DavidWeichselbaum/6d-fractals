@@ -21,6 +21,7 @@ class FractalSettings:
     start_iterations: int
     iteration_growth: int
     escape_radius: float
+    escape_counts: np.ndarray | None = None
 
 
 class FractalRenderer:
@@ -118,13 +119,12 @@ class FractalRenderer:
     def render_fractal(self):
         """Generate fractal data for the current settings."""
         t1 = time()
-
         sampled_points = self.sample_plane()
         max_iterations = self.settings.start_iterations + self.settings.iteration_growth * np.log(1 / self.settings.scale)
-        fractal = self.compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=self.settings.escape_radius)
+        escape_counts = self.compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=self.settings.escape_radius)
         t2 = time()
         print(f"{t2-t1:.2f} sec, {max_iterations:.0f} its,  {(t2-t1)/max_iterations:.2f} it/sec")
-        return fractal
+        return escape_counts
 
     def update_view(self, press=None, release=None):
         """Update fractal view based on rectangle selection or re-render."""
@@ -148,12 +148,18 @@ class FractalRenderer:
             )
             self.settings.scale *= min(abs(x1 - x0) / self.settings.resolution[0], abs(y1 - y0) / self.settings.resolution[1])
 
-        fractal = self.render_fractal()
+        escape_counts = self.settings.escape_counts
+        if escape_counts is None:
+            escape_counts = self.render_fractal()
+        else:
+            self.settings.escape_counts = None
 
-        self.history.append(deepcopy(self.settings))
+        history_settings = deepcopy(self.settings)
+        history_settings.escape_counts = escape_counts
+        self.history.append(history_settings)
 
-        self.image.set_data(fractal)
-        self.image.set_clim(vmin=fractal.min(), vmax=fractal.max())
+        self.image.set_data(escape_counts)
+        self.image.set_clim(vmin=escape_counts.min(), vmax=escape_counts.max())
         self.colorbar.update_normal(self.image)
         self.fig.canvas.draw()
 
@@ -191,12 +197,10 @@ class FractalRenderer:
         u_p = np.random.random(6) * 0.2 -0.1
         o_p = np.random.random(6) * 0.2 -0.1
         v_p = np.random.random(6) * 0.2 -0.1
-        print(u_p, self.settings.u)
-        print(u_p.shape, self.settings.u.shape)
         self.settings.u += u_p
         self.settings.o += o_p
         self.settings.v += v_p
-        print(self.settings)
+        pprint(self.settings)
 
     def on_key(self, event):
         """Handle key press events."""
@@ -234,8 +238,8 @@ class FractalRenderer:
     def draw(self):
         """Set up the Matplotlib plot and event handlers."""
         self.fig, self.ax = plt.subplots(figsize=(10, 10))
-        fractal = self.render_fractal()
-        self.image = self.ax.imshow(fractal, cmap="inferno")
+        escape_counts = self.render_fractal()
+        self.image = self.ax.imshow(escape_counts, cmap="inferno")
         self.colorbar = plt.colorbar(self.image, ax=self.ax, label="Iterations")
 
         self.rect_selector = RectangleSelector(
