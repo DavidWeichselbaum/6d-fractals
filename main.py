@@ -8,7 +8,8 @@ from copy import deepcopy
 from pprint import pprint
 
 
-RESOLUTION = (1000, 800)
+# RESOLUTION = (1000, 800)
+RESOLUTION = (500, 500)
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
@@ -60,7 +61,6 @@ class FractalRenderer:
 
         # Normalize basis vectors
         u_prime = u_prime / np.linalg.norm(u_prime)
-        v_prime = v_prime - np.dot(v_prime, u_prime) * u_prime
         v_prime = v_prime / np.linalg.norm(v_prime)
 
         # Sampling grid
@@ -282,14 +282,14 @@ expulia_settings = FractalSettings(
     scale=16.0,
 )
 
-expulia_corner_settings = FractalSettings(
-    u=np.array([0.45, 0.1428, 0, 0, 2, 0]),
+xmas_fractal = FractalSettings(
+    u=np.array([0.45, 0.1428, 0, 0, 0.70710678, 1.29289322]),
     o=np.array([0.45, 0.1428, 0, 0, 0, 2]),
-    v=np.array([0.45, 0.1428, 0, 0, 0, 0]),
+    v=np.array([0.45, 0.1428, 0, 0, -0.70710678, 1.29289322]),
     center=(-0.4, 0),
     rotation=0,
     scale=16.0,
 )
 
-renderer = FractalRenderer(mandelbrot_settings)
+renderer = FractalRenderer(julia_settings)
 renderer.draw()
