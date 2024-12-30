@@ -179,22 +179,19 @@ class FractalRenderer:
 
     def randomize_settings(self):
         self.settings = FractalSettings(
-            u=np.random.random(6) * 4 -2,
-            o=np.random.random(6) * 4 -2,
-            v=np.random.random(6) * 4 -2,
-            center=(-0.4, 0),
+            u=np.random.normal(loc=0, scale=1, size=6),
+            o=np.random.normal(loc=0, scale=1, size=6),
+            v=np.random.normal(loc=0, scale=1, size=6),
+            center=(0, 0),
             rotation=0,
-            scale=16.0,
+            scale=4.0,
         )
         pprint(self.settings)
 
     def perturb_settings(self):
-        u_p = np.random.random(6) * 0.2 -0.1
-        o_p = np.random.random(6) * 0.2 -0.1
-        v_p = np.random.random(6) * 0.2 -0.1
-        self.settings.u += u_p
-        self.settings.o += o_p
-        self.settings.v += v_p
+        self.settings.u += np.random.normal(loc=0, scale=0.05, size=6)
+        self.settings.o += np.random.normal(loc=0, scale=0.05, size=6)
+        self.settings.v += np.random.normal(loc=0, scale=0.05, size=6)
         pprint(self.settings)
 
     def on_key(self, event):
@@ -212,13 +209,13 @@ class FractalRenderer:
             elif event.key == 'd':
                 self.settings.center = (self.settings.center[0] + step, self.settings.center[1])
         elif event.key == 'q':
-            self.settings.scale *= 1.1
+            self.settings.scale *= 1.5
         elif event.key == 'e':
-            self.settings.scale /= 1.1
+            self.settings.scale /= 1.5
         elif event.key == 'f':
-            self.settings.rotation += np.pi / 16
+            self.settings.rotation += np.pi / 8
         elif event.key == 'r':
-            self.settings.rotation -= np.pi / 16
+            self.settings.rotation -= np.pi / 8
         elif event.key == 'home':
             self.reset_view()
         elif event.key == 'backspace':
@@ -287,5 +284,5 @@ xmas_fractal = FractalSettings(
     scale=16.0,
 )
 
-renderer = FractalRenderer(julia_settings)
+renderer = FractalRenderer(mandelbrot_settings)
 renderer.draw()
