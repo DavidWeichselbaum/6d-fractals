@@ -59,10 +59,6 @@ class FractalRenderer:
         u_prime = np.array(u) - np.array(o)
         v_prime = np.array(v) - np.array(o)
 
-        # Normalize basis vectors
-        u_prime = u_prime / np.linalg.norm(u_prime)
-        v_prime = v_prime / np.linalg.norm(v_prime)
-
         # Sampling grid
         aspect_ratio = w / h
         s = np.linspace(-0.5 * aspect_ratio, 0.5 * aspect_ratio, w)
