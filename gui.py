@@ -113,8 +113,10 @@ class FractalApp(QMainWindow):
 
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
-        # Normalize escape counts to 0-1 for colormap
-        normalized = escape_counts / escape_counts.max()
+        # Scale the escape counts to the range [0, 1] based on min and max values
+        min_val = escape_counts.min()
+        max_val = escape_counts.max()
+        normalized = (escape_counts - min_val) / (max_val - min_val)
 
         # Apply colormap
         from matplotlib import colormaps
