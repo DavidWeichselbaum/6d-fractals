@@ -15,6 +15,74 @@ ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
 
 
+def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0):
+    """
+    Sample a 2D plane in R^4 defined by three points: u, v, and o (origin point).
+    """
+
+    w, h = RESOLUTION
+    x, y = center
+    n_components = len(u)
+
+    # Compute vectors spanning the plane
+    u_prime = np.array(u) - np.array(o)
+    v_prime = np.array(v) - np.array(o)
+
+    # Sampling grid
+    aspect_ratio = w / h
+    s = np.linspace(-0.5 * aspect_ratio, 0.5 * aspect_ratio, w)
+    t = np.linspace(-0.5, 0.5, h)
+    S, T = np.meshgrid(s, t)
+
+    # Rotate, scale, translate
+    rotation_matrix = np.array([[np.cos(rotation), -np.sin(rotation)],
+                                 [np.sin(rotation),  np.cos(rotation)]])
+    points = np.vstack([S.ravel(), T.ravel()])  # Shape (2, N)
+    rotated_points = rotation_matrix @ points  # Matrix multiplication
+    S = rotated_points[0, :].reshape(S.shape)
+    T = rotated_points[1, :].reshape(T.shape)
+    S = S * scale
+    T = T * scale
+    S = S + x
+    T = T + y
+
+    # Compute points in the plane
+    points = np.zeros((h, w, n_components))
+    for i in range(h):
+        for j in range(w):
+            points[i, j, :] = np.array(o) + S[i, j] * u_prime + T[i, j] * v_prime
+
+    # Convert to complex points
+    complex_points = np.zeros((h, w, n_components // 2), dtype=complex)
+    for i in range(n_components // 2):
+        real_part = points[..., i*2]
+        imaginary_part = points[..., i*2+1]
+        complex_points[..., i] = real_part + 1j * imaginary_part
+    return complex_points
+
+
+@njit(parallel=True)
+def compute_fractal(c_z_e_array, max_iterations=100, escape_radius=2):
+    """
+    Compute a fractal based on the formula z = z^e + c.
+    """
+    height, width, _ = c_z_e_array.shape
+    escape_counts = np.zeros((height, width), dtype=np.int32)
+
+    for i in prange(height):  # parallelized
+        for j in range(width):
+            c, z, e = c_z_e_array[i, j]
+            count = 0
+            while abs(z) <= escape_radius and count < max_iterations:
+                if not z:
+                    z = c
+                z = z**e + c
+                count += 1
+            escape_counts[i, j] = count
+
+    return escape_counts
+
+
 @dataclass
 class FractalSettings:
     u: list  # vector 1
@@ -38,10 +106,10 @@ class FractalRenderer:
         self.image, self.colorbar = None, None
         self.rect_selector = None
 
-    def sample_plane(self):
-        """
-        Sample a 2D plane in R^4 defined by three points: u, v, and o (origin point).
-        """
+
+    def render_fractal(self):
+        """Generate fractal data for the current settings."""
+        t1 = time()
         u, o, v, center, rotation, scale = (
             self.settings.u,
             self.settings.o,
@@ -50,75 +118,9 @@ class FractalRenderer:
             self.settings.rotation,
             self.settings.scale,
         )
-
-        w, h = RESOLUTION
-        x, y = center
-        n_components = len(u)
-
-        # Compute vectors spanning the plane
-        u_prime = np.array(u) - np.array(o)
-        v_prime = np.array(v) - np.array(o)
-
-        # Sampling grid
-        aspect_ratio = w / h
-        s = np.linspace(-0.5 * aspect_ratio, 0.5 * aspect_ratio, w)
-        t = np.linspace(-0.5, 0.5, h)
-        S, T = np.meshgrid(s, t)
-
-        # Rotate, scale, translate
-        rotation_matrix = np.array([[np.cos(rotation), -np.sin(rotation)],
-                                     [np.sin(rotation),  np.cos(rotation)]])
-        points = np.vstack([S.ravel(), T.ravel()])  # Shape (2, N)
-        rotated_points = rotation_matrix @ points  # Matrix multiplication
-        S = rotated_points[0, :].reshape(S.shape)
-        T = rotated_points[1, :].reshape(T.shape)
-        S = S * scale
-        T = T * scale
-        S = S + x
-        T = T + y
-
-        # Compute points in the plane
-        points = np.zeros((h, w, n_components))
-        for i in range(h):
-            for j in range(w):
-                points[i, j, :] = np.array(o) + S[i, j] * u_prime + T[i, j] * v_prime
-
-        # Convert to complex points
-        complex_points = np.zeros((h, w, n_components // 2), dtype=complex)
-        for i in range(n_components // 2):
-            real_part = points[..., i*2]
-            imaginary_part = points[..., i*2+1]
-            complex_points[..., i] = real_part + 1j * imaginary_part
-        return complex_points
-
-    @staticmethod
-    @njit(parallel=True)
-    def compute_fractal(c_z_e_array, max_iterations=100, escape_radius=2):
-        """
-        Compute a fractal based on the formula z = z^e + c.
-        """
-        height, width, _ = c_z_e_array.shape
-        escape_counts = np.zeros((height, width), dtype=np.int32)
-
-        for i in prange(height):  # parallelized
-            for j in range(width):
-                c, z, e = c_z_e_array[i, j]
-                count = 0
-                while abs(z) <= escape_radius and count < max_iterations:
-                    if not z:
-                        z = c
-                    z = z**e + c
-                    count += 1
-                escape_counts[i, j] = count
-
-        return escape_counts
-
-    def render_fractal(self):
-        """Generate fractal data for the current settings."""
-        t1 = time()
-        sampled_points = self.sample_plane()
+        sampled_points = sample_plane(u, o, v, center, rotation, scale)
         max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
-        escape_counts = self.compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=ESCAPE_RADIUS)
+        escape_counts = compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=ESCAPE_RADIUS)
         t2 = time()
         print(f"{t2-t1:.2f} sec, {max_iterations:.0f} its,  {(t2-t1)/max_iterations:.2f} it/sec")
         return escape_counts
@@ -284,5 +286,6 @@ xmas_fractal = FractalSettings(
     scale=16.0,
 )
 
-renderer = FractalRenderer(mandelbrot_settings)
-renderer.draw()
+if __name__ == "__main__":
+    renderer = FractalRenderer(mandelbrot_settings)
+    renderer.draw()
