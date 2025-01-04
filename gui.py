@@ -14,6 +14,7 @@ from main import sample_plane, compute_fractal, FractalSettings
 
 RESOLUTION = (1000, 800)
 # RESOLUTION = (500, 500)
+ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
@@ -156,7 +157,7 @@ class FractalApp(QMainWindow):
             return True
         elif event.type() == event.MouseMove and self.start_pos:
             end_pos = event.pos()
-            self.draw_selection_rectangle(self.start_pos, end_pos)
+            self.constrained_end_pos = self.draw_selection_rectangle(self.start_pos, end_pos)
             return True
         elif event.type() == event.MouseButtonRelease and event.button() == Qt.LeftButton:
             if self.start_pos and self.constrained_end_pos:
@@ -175,44 +176,37 @@ class FractalApp(QMainWindow):
         start_scene = self.graphics_view.mapToScene(start_pos)
         end_scene = self.graphics_view.mapToScene(end_pos)
 
-        # Get scene boundaries (the fractal display area)
-        scene_rect = self.graphics_scene.sceneRect()
-
-        # Ensure the starting point is within the fractal boundaries
-        if not scene_rect.contains(start_scene):
-            return
-        if not scene_rect.contains(end_scene):
-            return
-
-        # Clamp the end position to the scene boundaries
-        clamped_end_scene = QPointF(
-            max(scene_rect.left(), min(scene_rect.right(), end_scene.x())),
-            max(scene_rect.top(), min(scene_rect.bottom(), end_scene.y()))
-        )
-
         # Calculate the width and height with aspect ratio constraint
-        dx = abs(clamped_end_scene.x() - start_scene.x())
-        dy = abs(clamped_end_scene.y() - start_scene.y())
-        aspect_ratio = RESOLUTION[0] / RESOLUTION[1]
+        dx = abs(end_scene.x() - start_scene.x())
+        dy = abs(end_scene.y() - start_scene.y())
 
         if dx / RESOLUTION[0] > dy / RESOLUTION[1]:
-            dy = dx / aspect_ratio
+            dy = dx / ASPECT_RATIO
         else:
-            dx = dy * aspect_ratio
+            dx = dy * ASPECT_RATIO
 
         # Adjust for dragging direction
-        if clamped_end_scene.x() < start_scene.x():
+        if end_scene.x() < start_scene.x():
             dx = -dx
-        if clamped_end_scene.y() < start_scene.y():
+        if end_scene.y() < start_scene.y():
             dy = -dy
 
         # Create a rectangle with the constrained dimensions
         constrained_end_scene = QPointF(start_scene.x() + dx, start_scene.y() + dy)
+
+        # Get scene boundaries (the fractal display area)
+        scene_rect = self.graphics_scene.sceneRect()
+        # Ensure the starting point is within the fractal boundaries
+        if not scene_rect.contains(start_scene):
+            return
+        if not scene_rect.contains(constrained_end_scene):
+            return
+
         rect = QRectF(start_scene, constrained_end_scene)
         self.selection_rect = self.graphics_scene.addRect(rect, QPen(Qt.red, 2))
-
         # Store the constrained end position for use in handle_selection
-        self.constrained_end_pos = self.graphics_view.mapFromScene(constrained_end_scene)
+        constrained_end_pos = self.graphics_view.mapFromScene(constrained_end_scene)
+        return constrained_end_pos
 
     def handle_selection(self, press_pos, release_pos):
         """Handle rectangle selection to adjust the fractal view."""
