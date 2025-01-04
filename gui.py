@@ -173,6 +173,7 @@ class FractalApp(QMainWindow):
         if self.settings.escape_counts is not None:
             logging.info("Using previously rendered fractal...")
             self.display_fractal(self.settings.escape_counts)
+            self.settings.escape_counts = None  # make historic settings changeable again
         else:
             logging.info("Rendering fractal...")
             self.worker = FractalWorker(self.settings)
