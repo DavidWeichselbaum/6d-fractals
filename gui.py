@@ -97,6 +97,7 @@ class FractalApp(QMainWindow):
 
         # Variables for rectangle selection
         self.start_pos = None
+        self.constrained_end_pos = None
         self.selection_rect = None
 
         # Enable mouse events for rectangle selection
@@ -158,9 +159,10 @@ class FractalApp(QMainWindow):
             self.draw_selection_rectangle(self.start_pos, end_pos)
             return True
         elif event.type() == event.MouseButtonRelease and event.button() == Qt.LeftButton:
-            if self.start_pos:
+            if self.start_pos and self.constrained_end_pos:
                 self.handle_selection(self.start_pos, event.pos())
                 self.start_pos = None
+                self.constrained_end_pos = None
             return True
         return super().eventFilter(source, event)
 
@@ -178,6 +180,8 @@ class FractalApp(QMainWindow):
 
         # Ensure the starting point is within the fractal boundaries
         if not scene_rect.contains(start_scene):
+            return
+        if not scene_rect.contains(end_scene):
             return
 
         # Clamp the end position to the scene boundaries
@@ -216,9 +220,13 @@ class FractalApp(QMainWindow):
             self.graphics_scene.removeItem(self.selection_rect)
             self.selection_rect = None
 
+        if not release_pos:
+            print("Drawn out of bounds.")
+            return
+
         # Use the constrained end position
         press_scene = self.graphics_view.mapToScene(press_pos)
-        release_scene = self.graphics_view.mapToScene(self.constrained_end_pos)
+        release_scene = self.graphics_view.mapToScene(release_pos)
 
         x0, y0 = press_scene.x(), press_scene.y()
         x1, y1 = release_scene.x(), release_scene.y()
