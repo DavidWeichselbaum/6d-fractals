@@ -58,6 +58,8 @@ class FractalApp(QMainWindow):
         super().__init__()
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
+        self.colormap = cm.get_cmap("inferno")
+
         self.init_ui()
 
     def init_ui(self):
@@ -129,10 +131,14 @@ class FractalApp(QMainWindow):
 
     def render_fractal(self):
         """Start fractal rendering in a separate thread."""
-        logging.info("Rendering fractal...")
-        self.worker = FractalWorker(self.settings)
-        self.worker.finished.connect(self.display_fractal)
-        self.worker.start()
+        if self.settings.escape_counts is not None:
+            logging.info("Using previously rendered fractal...")
+            self.display_fractal(self.settings.escape_counts)
+        else:
+            logging.info("Rendering fractal...")
+            self.worker = FractalWorker(self.settings)
+            self.worker.finished.connect(self.display_fractal)
+            self.worker.start()
 
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
@@ -141,8 +147,7 @@ class FractalApp(QMainWindow):
         max_val = escape_counts.max()
         normalized = (escape_counts - min_val) / (max_val - min_val)
 
-        colormap = cm.get_cmap("inferno")
-        colored = (colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
+        colored = (self.colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
 
         height, width, _ = colored.shape
         q_image = QImage(colored.data, width, height, 3 * width, QImage.Format_RGB888)
@@ -150,6 +155,11 @@ class FractalApp(QMainWindow):
         pixmap = QPixmap.fromImage(q_image)
         self.graphics_scene.clear()
         self.graphics_scene.addPixmap(pixmap)
+
+        history_settings = deepcopy(self.settings)
+        history_settings.escape_counts = escape_counts
+        self.history.append(history_settings)
+
         logging.info("Fractal display updated.")
 
     def zoom_in(self):
@@ -164,15 +174,19 @@ class FractalApp(QMainWindow):
 
     def reset_view(self):
         logging.info("Resetting view...")
-        self.settings = deepcopy(self.history[0])
+        self.settings = self.history[0]
+        self.history = self.history[:1]
         self.render_fractal()
 
     def go_back(self):
         logging.info("Going back in history...")
-        if len(self.history) > 1:
-            self.history.pop()
-            self.settings = deepcopy(self.history[-1])
-            self.render_fractal()
+        if len(self.history) <= 1:
+            logging.info("No history left.")
+            return
+
+        self.settings = self.history[-2]
+        self.history = self.history[:-2]
+        self.render_fractal()
 
     def randomize_settings(self):
         logging.info("Randomizing fractal settings...")
