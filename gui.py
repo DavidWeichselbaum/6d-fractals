@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.cm as cm
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
 from PyQt5.QtGui import QPixmap, QImage, QPen
@@ -16,6 +16,7 @@ from main import sample_plane, compute_fractal, FractalSettings
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 RESOLUTION = (1000, 800)
+# RESOLUTION = (1920, 1080)
 ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
@@ -69,36 +70,13 @@ class FractalApp(QMainWindow):
         # Main layout: Horizontal layout with fractal display and controls
         main_layout = QHBoxLayout()
 
-        # Fractal display
+        # Add the fractal display
         fractal_layout = QVBoxLayout()
-        self.graphics_view = QGraphicsView()
-        self.graphics_scene = QGraphicsScene()
-        self.graphics_view.setScene(self.graphics_scene)
-        self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
-        fractal_layout.addWidget(self.graphics_view)
-
-        # Controls layout
-        controls_layout = QVBoxLayout()
-
-        # Add buttons with tooltips for shortcuts
-        self.add_control_button(controls_layout, "Zoom In", "Shortcut: Q", self.zoom_in)
-        self.add_control_button(controls_layout, "Zoom Out", "Shortcut: E", self.zoom_out)
-        self.add_control_button(controls_layout, "Move Up", "Shortcut: W", lambda: self.move("W"))
-        self.add_control_button(controls_layout, "Move Down", "Shortcut: S", lambda: self.move("S"))
-        self.add_control_button(controls_layout, "Move Left", "Shortcut: A", lambda: self.move("A"))
-        self.add_control_button(controls_layout, "Move Right", "Shortcut: D", lambda: self.move("D"))
-        self.add_control_button(controls_layout, "Rotate CW", "Shortcut: F", lambda: self.rotate("CW"))
-        self.add_control_button(controls_layout, "Rotate CCW", "Shortcut: R", lambda: self.rotate("CCW"))
-        self.add_control_button(controls_layout, "Reset View", "Shortcut: Home", self.reset_view)
-        self.add_control_button(controls_layout, "Go Back", "Shortcut: Backspace", self.go_back)
-        self.add_control_button(controls_layout, "Randomize", "Shortcut: X", self.randomize_settings)
-        self.add_control_button(controls_layout, "Perturb", "Shortcut: Z", self.perturb_settings)
-
-        # Add a spacer to center the controls vertically
-        controls_layout.addStretch()
-
-        # Add fractal display and controls to the main layout
+        self.setup_fractal_display(fractal_layout)
         main_layout.addLayout(fractal_layout)
+
+        # Add the control buttons
+        controls_layout = self.setup_controls()
         main_layout.addLayout(controls_layout)
 
         # Main widget
@@ -122,12 +100,73 @@ class FractalApp(QMainWindow):
         # Initial render
         self.render_fractal()
 
-    def add_control_button(self, layout, label, tooltip, callback):
-        """Add a button to the control layout."""
+    def setup_fractal_display(self, layout):
+        """Set up the fractal display area."""
+        self.graphics_view = QGraphicsView()
+        self.graphics_scene = QGraphicsScene()
+        self.graphics_view.setScene(self.graphics_scene)
+        self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
+        layout.addWidget(self.graphics_view)
+
+    def setup_controls(self):
+        """Set up the control buttons."""
+        controls_layout = QVBoxLayout()
+
+        # Add zoom controls
+        controls_layout.addLayout(self.setup_zoom_controls())
+
+        # Add move controls
+        controls_layout.addLayout(self.setup_move_controls())
+
+        # Add rotate controls
+        controls_layout.addLayout(self.setup_rotate_controls())
+
+        # Add reset and history controls
+        controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
+        controls_layout.addWidget(self.create_button("⟲", "Go Back (Shortcut: Backspace)", self.go_back))
+
+        # Add randomize and perturb controls
+        controls_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
+        controls_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
+
+        # Add a spacer to center the controls vertically
+        controls_layout.addStretch()
+
+        return controls_layout
+
+    def setup_zoom_controls(self):
+        """Set up zoom in and zoom out controls."""
+        zoom_layout = QHBoxLayout()
+        zoom_out_btn = self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out)
+        zoom_in_btn = self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in)
+        zoom_layout.addWidget(zoom_out_btn)
+        zoom_layout.addWidget(zoom_in_btn)
+        return zoom_layout
+
+    def setup_move_controls(self):
+        """Set up move controls in an arrow key layout."""
+        move_layout = QGridLayout()
+        move_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
+        move_layout.addWidget(self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")), 1, 0)
+        move_layout.addWidget(self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")), 1, 1)
+        move_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
+        return move_layout
+
+    def setup_rotate_controls(self):
+        """Set up rotate clockwise and counterclockwise controls."""
+        rotate_layout = QHBoxLayout()
+        rotate_ccw_btn = self.create_button("↺", "Rotate Counterclockwise (Shortcut: R)", lambda: self.rotate("CCW"))
+        rotate_cw_btn = self.create_button("↻", "Rotate Clockwise (Shortcut: F)", lambda: self.rotate("CW"))
+        rotate_layout.addWidget(rotate_ccw_btn)
+        rotate_layout.addWidget(rotate_cw_btn)
+        return rotate_layout
+
+    def create_button(self, label, tooltip, callback):
+        """Create a reusable button."""
         button = QPushButton(label)
         button.setToolTip(tooltip)
         button.clicked.connect(callback)
-        layout.addWidget(button)
+        return button
 
     def render_fractal(self):
         """Start fractal rendering in a separate thread."""
