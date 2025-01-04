@@ -15,12 +15,12 @@ ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
 
 
-def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0):
+def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0, resolution=(500, 500)):
     """
     Sample a 2D plane in R^4 defined by three points: u, v, and o (origin point).
     """
 
-    w, h = RESOLUTION
+    w, h = resolution
     x, y = center
     n_components = len(u)
 
@@ -118,7 +118,7 @@ class FractalRenderer:
             self.settings.rotation,
             self.settings.scale,
         )
-        sampled_points = sample_plane(u, o, v, center, rotation, scale)
+        sampled_points = sample_plane(u, o, v, center, rotation, scale, RESOLUTION)
         max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
         escape_counts = compute_fractal(sampled_points, max_iterations=max_iterations, escape_radius=ESCAPE_RADIUS)
         t2 = time()
