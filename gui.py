@@ -1,24 +1,25 @@
 import sys
+import logging
 from copy import deepcopy
 
 import numpy as np
 import matplotlib.cm as cm
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel, QHBoxLayout, QGraphicsView, QGraphicsScene
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
 from PyQt5.QtGui import QPixmap, QImage, QPen
 
 from main import sample_plane, compute_fractal, FractalSettings
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 RESOLUTION = (1000, 800)
-# RESOLUTION = (500, 500)
 ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
-
 
 
 class FractalWorker(QThread):
@@ -30,6 +31,7 @@ class FractalWorker(QThread):
 
     def run(self):
         """Perform fractal computation in a separate thread."""
+        logging.info("Starting fractal computation...")
         sampled_points = sample_plane(
             self.settings.u,
             self.settings.o,
@@ -45,6 +47,7 @@ class FractalWorker(QThread):
             max_iterations=int(max_iterations),
             escape_radius=ESCAPE_RADIUS
         )
+        logging.info("Fractal computation completed.")
         self.finished.emit(escape_counts)
 
 
@@ -59,37 +62,42 @@ class FractalApp(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Fractal Explorer with Rectangle Selection")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1000, 600)
 
-        # Main layout
-        main_layout = QVBoxLayout()
+        # Main layout: Horizontal layout with fractal display and controls
+        main_layout = QHBoxLayout()
 
-        # Graphics view for fractal image
+        # Fractal display
+        fractal_layout = QVBoxLayout()
         self.graphics_view = QGraphicsView()
         self.graphics_scene = QGraphicsScene()
         self.graphics_view.setScene(self.graphics_scene)
         self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
-        main_layout.addWidget(self.graphics_view)
+        fractal_layout.addWidget(self.graphics_view)
 
         # Controls layout
-        controls = QHBoxLayout()
+        controls_layout = QVBoxLayout()
 
-        # Zoom buttons
-        zoom_in_btn = QPushButton("Zoom In")
-        zoom_in_btn.clicked.connect(self.zoom_in)
-        controls.addWidget(zoom_in_btn)
+        # Add buttons with tooltips for shortcuts
+        self.add_control_button(controls_layout, "Zoom In", "Shortcut: Q", self.zoom_in)
+        self.add_control_button(controls_layout, "Zoom Out", "Shortcut: E", self.zoom_out)
+        self.add_control_button(controls_layout, "Move Up", "Shortcut: W", lambda: self.move("W"))
+        self.add_control_button(controls_layout, "Move Down", "Shortcut: S", lambda: self.move("S"))
+        self.add_control_button(controls_layout, "Move Left", "Shortcut: A", lambda: self.move("A"))
+        self.add_control_button(controls_layout, "Move Right", "Shortcut: D", lambda: self.move("D"))
+        self.add_control_button(controls_layout, "Rotate CW", "Shortcut: F", lambda: self.rotate("CW"))
+        self.add_control_button(controls_layout, "Rotate CCW", "Shortcut: R", lambda: self.rotate("CCW"))
+        self.add_control_button(controls_layout, "Reset View", "Shortcut: Home", self.reset_view)
+        self.add_control_button(controls_layout, "Go Back", "Shortcut: Backspace", self.go_back)
+        self.add_control_button(controls_layout, "Randomize", "Shortcut: X", self.randomize_settings)
+        self.add_control_button(controls_layout, "Perturb", "Shortcut: Z", self.perturb_settings)
 
-        zoom_out_btn = QPushButton("Zoom Out")
-        zoom_out_btn.clicked.connect(self.zoom_out)
-        controls.addWidget(zoom_out_btn)
+        # Add a spacer to center the controls vertically
+        controls_layout.addStretch()
 
-        # Reset button
-        reset_btn = QPushButton("Reset View")
-        reset_btn.clicked.connect(self.reset_view)
-        controls.addWidget(reset_btn)
-
-        # Add controls to the main layout
-        main_layout.addLayout(controls)
+        # Add fractal display and controls to the main layout
+        main_layout.addLayout(fractal_layout)
+        main_layout.addLayout(controls_layout)
 
         # Main widget
         container = QWidget()
@@ -105,50 +113,137 @@ class FractalApp(QMainWindow):
         self.graphics_view.setMouseTracking(True)
         self.graphics_view.viewport().installEventFilter(self)
 
+        # Connect key press events
+        self.graphics_view.setFocus()
+        self.graphics_view.keyPressEvent = self.on_key
+
         # Initial render
         self.render_fractal()
 
+    def add_control_button(self, layout, label, tooltip, callback):
+        """Add a button to the control layout."""
+        button = QPushButton(label)
+        button.setToolTip(tooltip)
+        button.clicked.connect(callback)
+        layout.addWidget(button)
+
     def render_fractal(self):
         """Start fractal rendering in a separate thread."""
+        logging.info("Rendering fractal...")
         self.worker = FractalWorker(self.settings)
         self.worker.finished.connect(self.display_fractal)
         self.worker.start()
 
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
-        # Scale the escape counts to the range [0, 1] based on min and max values
+        logging.info("Displaying fractal...")
         min_val = escape_counts.min()
         max_val = escape_counts.max()
         normalized = (escape_counts - min_val) / (max_val - min_val)
 
-        # Apply colormap
-        from matplotlib import colormaps
-        colormap = colormaps["inferno"]
-        colored = (colormap(normalized)[:, :, :3] * 255).astype(np.uint8)  # Convert RGBA to RGB
+        colormap = cm.get_cmap("inferno")
+        colored = (colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
 
-        # Convert to QImage
         height, width, _ = colored.shape
         q_image = QImage(colored.data, width, height, 3 * width, QImage.Format_RGB888)
 
-        # Convert QImage to QPixmap and display
         pixmap = QPixmap.fromImage(q_image)
         self.graphics_scene.clear()
         self.graphics_scene.addPixmap(pixmap)
+        logging.info("Fractal display updated.")
 
     def zoom_in(self):
-        """Zoom in on the fractal."""
+        logging.info("Zooming in...")
         self.settings.scale /= 1.5
         self.render_fractal()
 
     def zoom_out(self):
-        """Zoom out on the fractal."""
+        logging.info("Zooming out...")
         self.settings.scale *= 1.5
         self.render_fractal()
 
     def reset_view(self):
-        """Reset to the initial fractal view."""
+        logging.info("Resetting view...")
         self.settings = deepcopy(self.history[0])
         self.render_fractal()
+
+    def go_back(self):
+        logging.info("Going back in history...")
+        if len(self.history) > 1:
+            self.history.pop()
+            self.settings = deepcopy(self.history[-1])
+            self.render_fractal()
+
+    def randomize_settings(self):
+        logging.info("Randomizing fractal settings...")
+        self.settings = FractalSettings(
+            u=np.random.normal(size=6),
+            o=np.random.normal(size=6),
+            v=np.random.normal(size=6),
+            center=(0.0, 0.0),
+            rotation=0.0,
+            scale=4.0,
+        )
+        self.render_fractal()
+
+    def perturb_settings(self):
+        logging.info("Perturbing fractal settings...")
+        self.settings.u += np.random.normal(scale=0.05, size=self.settings.u.shape)
+        self.settings.o += np.random.normal(scale=0.05, size=self.settings.o.shape)
+        self.settings.v += np.random.normal(scale=0.05, size=self.settings.v.shape)
+        self.render_fractal()
+
+    def move(self, direction):
+        logging.info(f"Moving {direction}...")
+        step = self.settings.scale * 0.1
+        if direction == "W":
+            self.settings.center = (self.settings.center[0], self.settings.center[1] - step)
+        elif direction == "S":
+            self.settings.center = (self.settings.center[0], self.settings.center[1] + step)
+        elif direction == "A":
+            self.settings.center = (self.settings.center[0] - step, self.settings.center[1])
+        elif direction == "D":
+            self.settings.center = (self.settings.center[0] + step, self.settings.center[1])
+        self.render_fractal()
+
+    def rotate(self, direction):
+        logging.info(f"Rotating {direction}...")
+        if direction == "CW":
+            self.settings.rotation += np.pi / 8
+        elif direction == "CCW":
+            self.settings.rotation -= np.pi / 8
+        self.render_fractal()
+
+    def on_key(self, event):
+        """Handle key press events."""
+        logging.info(f"Key pressed: {event.key()}")
+        step = self.settings.scale * 0.1
+        if event.key() == Qt.Key_Escape:
+            exit()
+        elif event.key() == Qt.Key_W:
+            self.move("W")
+        elif event.key() == Qt.Key_S:
+            self.move("S")
+        elif event.key() == Qt.Key_A:
+            self.move("A")
+        elif event.key() == Qt.Key_D:
+            self.move("D")
+        elif event.key() == Qt.Key_Q:
+            self.zoom_out()
+        elif event.key() == Qt.Key_E:
+            self.zoom_in()
+        elif event.key() == Qt.Key_F:
+            self.rotate("CW")
+        elif event.key() == Qt.Key_R:
+            self.rotate("CCW")
+        elif event.key() == Qt.Key_Home:
+            self.reset_view()
+        elif event.key() == Qt.Key_Backspace:
+            self.go_back()
+        elif event.key() == Qt.Key_X:
+            self.randomize_settings()
+        elif event.key() == Qt.Key_Z:
+            self.perturb_settings()
 
     def eventFilter(self, source, event):
         """Handle mouse events for rectangle selection."""
@@ -161,7 +256,7 @@ class FractalApp(QMainWindow):
             return True
         elif event.type() == event.MouseButtonRelease and event.button() == Qt.LeftButton:
             if self.start_pos and self.constrained_end_pos:
-                self.handle_selection(self.start_pos, event.pos())
+                self.handle_selection(self.start_pos, self.constrained_end_pos)
                 self.start_pos = None
                 self.constrained_end_pos = None
             return True
@@ -172,11 +267,9 @@ class FractalApp(QMainWindow):
         if self.selection_rect:
             self.graphics_scene.removeItem(self.selection_rect)
 
-        # Map start and end positions to scene coordinates
         start_scene = self.graphics_view.mapToScene(start_pos)
         end_scene = self.graphics_view.mapToScene(end_pos)
 
-        # Calculate the width and height with aspect ratio constraint
         dx = abs(end_scene.x() - start_scene.x())
         dy = abs(end_scene.y() - start_scene.y())
 
@@ -185,26 +278,18 @@ class FractalApp(QMainWindow):
         else:
             dx = dy * ASPECT_RATIO
 
-        # Adjust for dragging direction
         if end_scene.x() < start_scene.x():
             dx = -dx
         if end_scene.y() < start_scene.y():
             dy = -dy
 
-        # Create a rectangle with the constrained dimensions
         constrained_end_scene = QPointF(start_scene.x() + dx, start_scene.y() + dy)
-
-        # Get scene boundaries (the fractal display area)
         scene_rect = self.graphics_scene.sceneRect()
-        # Ensure the starting point is within the fractal boundaries
-        if not scene_rect.contains(start_scene):
-            return
-        if not scene_rect.contains(constrained_end_scene):
+        if not scene_rect.contains(start_scene) or not scene_rect.contains(constrained_end_scene):
             return
 
         rect = QRectF(start_scene, constrained_end_scene)
         self.selection_rect = self.graphics_scene.addRect(rect, QPen(Qt.red, 2))
-        # Store the constrained end position for use in handle_selection
         constrained_end_pos = self.graphics_view.mapFromScene(constrained_end_scene)
         return constrained_end_pos
 
@@ -214,26 +299,19 @@ class FractalApp(QMainWindow):
             self.graphics_scene.removeItem(self.selection_rect)
             self.selection_rect = None
 
-        if not release_pos:
-            print("Drawn out of bounds.")
-            return
-
-        # Use the constrained end position
         press_scene = self.graphics_view.mapToScene(press_pos)
         release_scene = self.graphics_view.mapToScene(release_pos)
 
         x0, y0 = press_scene.x(), press_scene.y()
         x1, y1 = release_scene.x(), release_scene.y()
 
-        # Calculate rectangle dimensions
         width_pixels = abs(x1 - x0)
         height_pixels = abs(y1 - y0)
 
         if width_pixels < self.MIN_RECTANGLE[0] or height_pixels < self.MIN_RECTANGLE[1]:
-            print("Selection too small!")
+            logging.info("Selection too small!")
             return
 
-        # Normalize coordinates to fractal space
         cx = (x0 + x1) / 2 / RESOLUTION[0] - 0.5
         cy = (y0 + y1) / 2 / RESOLUTION[1] - 0.5
 
@@ -244,7 +322,6 @@ class FractalApp(QMainWindow):
         self.settings.scale *= min(width_pixels / RESOLUTION[0], height_pixels / RESOLUTION[1])
 
         self.render_fractal()
-
 
 
 if __name__ == "__main__":
