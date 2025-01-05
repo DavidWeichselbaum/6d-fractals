@@ -2,11 +2,12 @@ import sys
 import logging
 from copy import deepcopy
 
+import yaml
 import numpy as np
 import matplotlib.cm as cm
 from matplotlib import colormaps
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog
 )
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
@@ -114,6 +115,10 @@ class FractalApp(QMainWindow):
     def setup_controls(self):
         """Set up the control buttons."""
         controls_layout = QVBoxLayout()
+
+        # Add save and load controls
+        controls_layout.addWidget(self.create_button("Save Settings", "Save current settings to a file", self.save_settings))
+        controls_layout.addWidget(self.create_button("Load Settings", "Load settings from a file", self.load_settings))
 
         # Add reset and history controls
         controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
@@ -371,6 +376,53 @@ class FractalApp(QMainWindow):
             self.randomize_settings()
         elif event.key() == Qt.Key_Z:
             self.perturb_settings()
+
+    def save_settings(self):
+        """Save the current fractal settings to a YAML file."""
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save Fractal Settings", "", "YAML Files (*.yaml);;All Files (*)", options=options)
+        if file_path:
+            # Convert settings to a dictionary for serialization
+            settings_dict = self.settings_to_dict(self.settings)
+            with open(file_path, "w") as file:
+                yaml.dump(settings_dict, file, default_flow_style=False)
+            logging.info(f"Settings saved to {file_path}")
+
+    def load_settings(self):
+        """Load fractal settings from a YAML file."""
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load Fractal Settings", "", "YAML Files (*.yaml);;All Files (*)", options=options)
+        if file_path:
+            with open(file_path, "r") as file:
+                settings_dict = yaml.safe_load(file)
+                self.settings = self.dict_to_settings(settings_dict)
+            logging.info(f"Settings loaded from {file_path}")
+            self.render_fractal()
+
+    @staticmethod
+    def settings_to_dict(settings):
+        """Convert FractalSettings to a dictionary for YAML serialization."""
+        return {
+            "u": settings.u.tolist(),  # Convert numpy array to list
+            "o": settings.o.tolist(),  # Convert numpy array to list
+            "v": settings.v.tolist(),  # Convert numpy array to list
+            "center": list(settings.center),  # Convert tuple to list for YAML compatibility
+            "rotation": settings.rotation,
+            "scale": settings.scale,
+            "escape_counts": None,  # Skip escape_counts for serialization
+        }
+
+    @staticmethod
+    def dict_to_settings(settings_dict):
+        """Convert a dictionary to a FractalSettings object."""
+        return FractalSettings(
+            u=np.array(settings_dict["u"]),  # Convert list back to numpy array
+            o=np.array(settings_dict["o"]),  # Convert list back to numpy array
+            v=np.array(settings_dict["v"]),  # Convert list back to numpy array
+            center=tuple(settings_dict["center"]),  # Convert list back to tuple
+            rotation=settings_dict["rotation"],
+            scale=settings_dict["scale"],
+        )
 
     def eventFilter(self, source, event):
         """Handle mouse events for rectangle selection."""
