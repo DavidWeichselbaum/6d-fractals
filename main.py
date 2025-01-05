@@ -6,7 +6,9 @@ import yaml
 import numpy as np
 from matplotlib import colormaps
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout,
+    QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox, QGroupBox
+
 )
 
 from PyQt5.QtWidgets import QComboBox
@@ -60,6 +62,8 @@ class FractalWorker(QThread):
 
 class FractalApp(QMainWindow):
     MIN_RECTANGLE = (5, 5)  # Minimum rectangle size in pixels
+    INPUT_WIDTH = 60
+    CONTROLLS_WIDTH = INPUT_WIDTH * 4
 
     def __init__(self, initial_settings):
         super().__init__()
@@ -112,38 +116,76 @@ class FractalApp(QMainWindow):
         layout.addWidget(self.graphics_view)
 
     def setup_controls(self):
-        """Set up the control buttons and input fields."""
+        """Set up the control buttons and input fields with compact frames."""
         controls_layout = QVBoxLayout()
 
-        # Add save and load controls
-        controls_layout.addWidget(self.create_button("Save Settings", "Save current settings to a file", self.save_settings))
-        controls_layout.addWidget(self.create_button("Load Settings", "Load settings from a file", self.load_settings))
+        # Add file controls in a compact frame
+        file_controls_group = QGroupBox("File Controls")
+        file_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        file_controls_layout = QVBoxLayout()
+        file_controls_layout.addWidget(self.create_button("Save Settings", "Save current settings to a file", self.save_settings))
+        file_controls_layout.addWidget(self.create_button("Load Settings", "Load settings from a file", self.load_settings))
+        file_controls_group.setLayout(file_controls_layout)
+        controls_layout.addWidget(file_controls_group, alignment=Qt.AlignTop)
 
-        # Add reset and history controls
-        controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
-        controls_layout.addWidget(self.create_button("⟲", "Go Back (Shortcut: Backspace)", self.go_back))
+        # Add reset and history controls in a compact frame
+        history_controls_group = QGroupBox("History Controls")
+        history_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        history_controls_layout = QVBoxLayout()
+        history_controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
+        history_controls_layout.addWidget(self.create_button("⟲", "Go Back (Shortcut: Backspace)", self.go_back))
+        history_controls_group.setLayout(history_controls_layout)
+        controls_layout.addWidget(history_controls_group, alignment=Qt.AlignTop)
 
-        # Add randomize and perturb controls
-        controls_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
-        controls_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
+        # Add randomize and perturb controls in a compact frame
+        randomize_controls_group = QGroupBox("Randomize and Perturb")
+        randomize_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        randomize_controls_layout = QVBoxLayout()
+        randomize_controls_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
+        randomize_controls_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
+        randomize_controls_group.setLayout(randomize_controls_layout)
+        controls_layout.addWidget(randomize_controls_group, alignment=Qt.AlignTop)
 
-        # Add colormap dropdown
-        controls_layout.addWidget(self.setup_colormap_dropdown())
+        # Add colormap dropdown in a compact frame
+        colormap_group = QGroupBox("Colormap")
+        colormap_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        colormap_layout = QVBoxLayout()
+        colormap_layout.addWidget(self.setup_colormap_dropdown())
+        colormap_group.setLayout(colormap_layout)
+        controls_layout.addWidget(colormap_group, alignment=Qt.AlignTop)
 
-        # Add zoom controls
-        controls_layout.addLayout(self.setup_zoom_controls())
+        # Add zoom, move, and rotate controls in compact frames
+        zoom_controls_group = QGroupBox("Zoom Controls")
+        zoom_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        zoom_controls_layout = QVBoxLayout()
+        zoom_controls_layout.addLayout(self.setup_zoom_controls())
+        zoom_controls_group.setLayout(zoom_controls_layout)
+        controls_layout.addWidget(zoom_controls_group, alignment=Qt.AlignTop)
 
-        # Add move controls
-        controls_layout.addLayout(self.setup_move_controls())
+        move_controls_group = QGroupBox("Move Controls")
+        move_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        move_controls_layout = QVBoxLayout()
+        move_controls_layout.addLayout(self.setup_move_controls())
+        move_controls_group.setLayout(move_controls_layout)
+        controls_layout.addWidget(move_controls_group, alignment=Qt.AlignTop)
 
-        # Add rotate controls
-        controls_layout.addLayout(self.setup_rotate_controls())
+        rotate_controls_group = QGroupBox("Rotate Controls")
+        rotate_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        rotate_controls_layout = QVBoxLayout()
+        rotate_controls_layout.addLayout(self.setup_rotate_controls())
+        rotate_controls_group.setLayout(rotate_controls_layout)
+        controls_layout.addWidget(rotate_controls_group, alignment=Qt.AlignTop)
 
-        # Add fields for u, o, v vectors
-        parameters_label = QLabel("Fractal Parameters")
+        # Add fields for u, o, v vectors in a compact frame
+        parameters_group = QGroupBox("Fractal Parameters")
+        parameters_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        parameters_layout = QVBoxLayout()
+        parameters_label = QLabel("Edit Fractal Parameters")
         parameters_label.setToolTip("Change parameters or fix column and row headers by clicking them.")
-        controls_layout.addWidget(parameters_label)
-        controls_layout.addLayout(self.setup_uov_inputs())
+        parameters_layout.addWidget(parameters_label)
+        parameters_layout.addLayout(self.setup_uov_inputs())
+        parameters_group.setLayout(parameters_layout)
+        controls_layout.addWidget(parameters_group, alignment=Qt.AlignTop)
 
         # Add a spacer to center the controls vertically
         controls_layout.addStretch()
@@ -158,7 +200,6 @@ class FractalApp(QMainWindow):
         self.v_fields = []
         self.row_toggled = {i: False for i in range(6)}  # Track toggled state for rows
         self.col_toggled = {i: False for i in range(3)}  # Track toggled state for columns
-        input_width = 60
 
         # Row labels with toggle behavior
         row_labels = [
@@ -175,7 +216,7 @@ class FractalApp(QMainWindow):
             row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
             row_label.setAlignment(Qt.AlignCenter)
             row_label.mousePressEvent = lambda event, r=row: self.toggle_row(r)  # Bind toggle event
-            row_label.setFixedWidth(input_width)
+            row_label.setFixedWidth(self.INPUT_WIDTH)
             uov_layout.addWidget(row_label, row + 1, 0)  # First column for row labels
 
         # Column headers with toggle behavior
@@ -192,7 +233,7 @@ class FractalApp(QMainWindow):
             for row in range(6):
                 line_edit = QLineEdit(str(value[row]))
                 line_edit.setToolTip(f"{header} Component {row_labels[row]}")
-                line_edit.setFixedWidth(input_width)
+                line_edit.setFixedWidth(self.INPUT_WIDTH)
                 line_edit.returnPressed.connect(self.update_uov)
                 uov_layout.addWidget(line_edit, row + 1, col + 1)
                 field_list.append(line_edit)
