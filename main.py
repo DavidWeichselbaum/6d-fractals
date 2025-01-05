@@ -31,6 +31,10 @@ ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
 
 
+def rgba_to_rgb(color):
+    return [int(c * 255) for c in color[:3]]
+
+
 class FractalWorker(QThread):
     finished = pyqtSignal(np.ndarray)
 
@@ -119,71 +123,59 @@ class FractalApp(QMainWindow):
         """Set up the control buttons and input fields with compact frames."""
         controls_layout = QVBoxLayout()
 
-        # Add file controls in a compact frame
-        file_controls_group = QGroupBox("File")
-        file_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        file_controls_layout = QVBoxLayout()
-        file_controls_layout.addWidget(self.create_button("Save Settings", "Save current settings to a file", self.save_settings))
-        file_controls_layout.addWidget(self.create_button("Load Settings", "Load settings from a file", self.load_settings))
-        file_controls_group.setLayout(file_controls_layout)
-        controls_layout.addWidget(file_controls_group, alignment=Qt.AlignTop)
+        # File Controls
+        file_group = QGroupBox("File")
+        file_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+        file_layout = QVBoxLayout()
+        file_layout.addWidget(self.create_button("Load", "Load settings from a file", self.load_settings))
+        file_layout.addWidget(self.create_button("Save", "Save current settings to a file", self.save_settings))
+        file_group.setLayout(file_layout)
+        controls_layout.addWidget(file_group, alignment=Qt.AlignTop)
 
-        # Add reset and history controls in a compact frame
-        history_controls_group = QGroupBox("History")
-        history_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        history_controls_layout = QVBoxLayout()
-        history_controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
-        history_controls_layout.addWidget(self.create_button("⟲", "Go Back (Shortcut: Backspace)", self.go_back))
-        history_controls_group.setLayout(history_controls_layout)
-        controls_layout.addWidget(history_controls_group, alignment=Qt.AlignTop)
+        # History Controls
+        history_group = QGroupBox("History")
+        history_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+        history_layout = QVBoxLayout()
+        history_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
+        history_layout.addWidget(self.create_button("Undo", "Go Back (Shortcut: Backspace)", self.go_back))
+        history_group.setLayout(history_layout)
+        controls_layout.addWidget(history_group, alignment=Qt.AlignTop)
 
-        # Add randomize and perturb controls in a compact frame
-        randomize_controls_group = QGroupBox("Randomize and Perturb")
-        randomize_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        randomize_controls_layout = QVBoxLayout()
-        randomize_controls_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
-        randomize_controls_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
-        randomize_controls_group.setLayout(randomize_controls_layout)
-        controls_layout.addWidget(randomize_controls_group, alignment=Qt.AlignTop)
+        # Movement Controls
+        movement_group = QGroupBox("Movement")
+        movement_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+        movement_layout = QGridLayout()
+        movement_layout.addWidget(self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out), 0, 0)
+        movement_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
+        movement_layout.addWidget(self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in), 0, 2)
+        movement_layout.addWidget(self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")), 1, 0)
+        movement_layout.addWidget(self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")), 1, 1)
+        movement_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
+        movement_layout.addWidget(self.create_button("↺", "Rotate CCW (Shortcut: R)", lambda: self.rotate("CCW")), 2, 0)
+        movement_layout.addWidget(self.create_button("↻", "Rotate CW (Shortcut: F)", lambda: self.rotate("CW")), 2, 2)
+        movement_group.setLayout(movement_layout)
+        controls_layout.addWidget(movement_group, alignment=Qt.AlignTop)
 
-        # Add colormap dropdown in a compact frame
-        colormap_group = QGroupBox("Colors")
-        colormap_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        colormap_layout = QVBoxLayout()
-        colormap_layout.addWidget(self.setup_colormap_dropdown())
-        colormap_group.setLayout(colormap_layout)
-        controls_layout.addWidget(colormap_group, alignment=Qt.AlignTop)
+        # Color Controls
+        color_group = QGroupBox("Color")
+        color_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+        color_layout = QVBoxLayout()
+        color_layout.addWidget(self.setup_colormap_dropdown())
+        color_group.setLayout(color_layout)
+        controls_layout.addWidget(color_group, alignment=Qt.AlignTop)
 
-        # Add zoom, move, and rotate controls in compact frames
-        zoom_controls_group = QGroupBox("Zoom Controls")
-        zoom_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        zoom_controls_layout = QVBoxLayout()
-        zoom_controls_layout.addLayout(self.setup_zoom_controls())
-        zoom_controls_group.setLayout(zoom_controls_layout)
-        controls_layout.addWidget(zoom_controls_group, alignment=Qt.AlignTop)
-
-        move_controls_group = QGroupBox("Moving")
-        move_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        move_controls_layout = QVBoxLayout()
-        move_controls_layout.addLayout(self.setup_move_controls())
-        move_controls_group.setLayout(move_controls_layout)
-        controls_layout.addWidget(move_controls_group, alignment=Qt.AlignTop)
-
-        rotate_controls_group = QGroupBox("Rotate Controls")
-        rotate_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
-        rotate_controls_layout = QVBoxLayout()
-        rotate_controls_layout.addLayout(self.setup_rotate_controls())
-        rotate_controls_group.setLayout(rotate_controls_layout)
-        controls_layout.addWidget(rotate_controls_group, alignment=Qt.AlignTop)
-
-        # Add fields for u, o, v vectors in a compact frame
+        # Parameters
         parameters_group = QGroupBox("Parameters")
-        parameters_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
+        parameters_group.setToolTip("Change parameters or fix column and row headers by clicking them.")
+        parameters_group.setMaximumWidth(self.CONTROLLS_WIDTH)
         parameters_layout = QVBoxLayout()
-        parameters_label = QLabel("Edit Fractal Parameters")
-        parameters_label.setToolTip("Change parameters or fix column and row headers by clicking them.")
-        parameters_layout.addWidget(parameters_label)
         parameters_layout.addLayout(self.setup_uov_inputs())
+
+        # Randomize and Perturb Buttons
+        randomize_perturb_layout = QHBoxLayout()
+        randomize_perturb_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
+        randomize_perturb_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
+        parameters_layout.addLayout(randomize_perturb_layout)
         parameters_group.setLayout(parameters_layout)
         controls_layout.addWidget(parameters_group, alignment=Qt.AlignTop)
 
@@ -283,21 +275,15 @@ class FractalApp(QMainWindow):
 
     def update_interface_color(self):
         """Update the interface colors to match the colormap."""
-        # Extract colors from the colormap
+        selector_color = self.colormap(0.5)
         background_color = self.colormap(0)  # RGBA tuple for background
         text_color = self.colormap(0.3)  # RGBA tuple for text
         border_color = self.colormap(0.6)  # RGBA tuple for borders
         input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
-
-        # Toggled and untoggled styles for labels
         untoggled_bg_color = self.colormap(0.1)  # Light background for untoggled
         untoggled_text_color = self.colormap(0.3)  # Dark text for untoggled
         toggled_bg_color = self.colormap(0.3)  # Dark background for toggled
         toggled_text_color = self.colormap(0.1)  # Light text for toggled
-
-        # Convert colors to RGB values
-        def rgba_to_rgb(color):
-            return [int(c * 255) for c in color[:3]]
 
         r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
         r_text, g_text, b_text = rgba_to_rgb(text_color)
@@ -307,6 +293,10 @@ class FractalApp(QMainWindow):
         r_untoggled_text, g_untoggled_text, b_untoggled_text = rgba_to_rgb(untoggled_text_color)
         r_toggled_bg, g_toggled_bg, b_toggled_bg = rgba_to_rgb(toggled_bg_color)
         r_toggled_text, g_toggled_text, b_toggled_text = rgba_to_rgb(toggled_text_color)
+
+
+        selector_color_rgb = rgba_to_rgb(selector_color)
+        self.selector_color = QColor(*selector_color_rgb)
 
         # Save the toggled and untoggled styles
         self.toggled_style = f"background-color: rgb({r_toggled_bg}, {g_toggled_bg}, {b_toggled_bg}); color: rgb({r_toggled_text}, {g_toggled_text}, {b_toggled_text}); font-weight: bold;"
@@ -357,7 +347,7 @@ class FractalApp(QMainWindow):
             QGroupBox {{
                 color: rgb({r_text}, {g_text}, {b_text});
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 2px solid rgb({r_border}, {g_border}, {b_border});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
                 border-radius: 5px;
                 font-weight: bold;
                 margin-top: 10px;
@@ -672,7 +662,7 @@ class FractalApp(QMainWindow):
 
         # Create and display the selection rectangle
         self.selection_rect = QRectF(start_scene, constrained_end_scene)
-        self.selection_rect_visual = self.graphics_scene.addRect(self.selection_rect, QPen(Qt.red, 2))
+        self.selection_rect_visual = self.graphics_scene.addRect(self.selection_rect, QPen(self.selector_color, 2))
 
     def handle_selection(self):
         """Handle rectangle selection to adjust the fractal view."""
