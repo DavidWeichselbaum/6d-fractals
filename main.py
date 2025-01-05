@@ -6,7 +6,7 @@ import yaml
 import numpy as np
 from matplotlib import colormaps
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox
 )
 
 from PyQt5.QtWidgets import QComboBox
@@ -149,37 +149,48 @@ class FractalApp(QMainWindow):
         return controls_layout
 
     def setup_uov_inputs(self):
-        """Create compact input fields for u, o, v vectors with labels."""
+        """Create compact input fields for u, o, v vectors with toggleable labels."""
         uov_layout = QGridLayout()
         self.u_fields = []
         self.o_fields = []
         self.v_fields = []
+        self.row_toggled = {i: False for i in range(6)}  # Track toggled state for rows
+        self.col_toggled = {i: False for i in range(3)}  # Track toggled state for columns
         input_width = 60
 
-        # Labels for the first column
+        # Row labels with toggle behavior
         row_labels = [
-            "c a",
-            "c b",
-            "z_0 a",
-            "z_0 b",
-            "power a",
-            "power b",
+            "c real",
+            "c imaginary",
+            "z_0 real",
+            "z_0 imaginary",
+            "power real",
+            "power imaginary",
         ]
         for row, label in enumerate(row_labels):
             row_label = QLabel(label)
-            row_label.setFixedWidth(input_width)  # Set a fixed width for the input field
+            row_label.setObjectName(f"row_{row}")  # Assign a unique objectName
+            row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
+            row_label.setAlignment(Qt.AlignCenter)
+            row_label.mousePressEvent = lambda event, r=row: self.toggle_row(r)  # Bind toggle event
+            row_label.setFixedWidth(input_width)
             uov_layout.addWidget(row_label, row + 1, 0)  # First column for row labels
 
-        # Add column headers and input fields
+        # Column headers with toggle behavior
         column_labels = ["Top", "Center", "Right"]
         fields = [self.u_fields, self.o_fields, self.v_fields]
         values = [self.settings.u, self.settings.o, self.settings.v]
         for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
-            uov_layout.addWidget(QLabel(header), 0, col + 1)  # Column headers (shifted by 1)
-            for row in range(6):  # 6 values in each vector
+            col_label = QLabel(header)
+            col_label.setObjectName(f"col_{col}")  # Assign a unique objectName
+            col_label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
+            col_label.setAlignment(Qt.AlignCenter)
+            col_label.mousePressEvent = lambda event, c=col: self.toggle_column(c)  # Bind toggle event
+            uov_layout.addWidget(col_label, 0, col + 1)  # Column headers (shifted by 1)
+            for row in range(6):
                 line_edit = QLineEdit(str(value[row]))
                 line_edit.setToolTip(f"{header} Component {row_labels[row]}")
-                line_edit.setFixedWidth(input_width)  # Set a fixed width for the input field
+                line_edit.setFixedWidth(input_width)
                 line_edit.returnPressed.connect(self.update_uov)
                 uov_layout.addWidget(line_edit, row + 1, col + 1)
                 field_list.append(line_edit)
@@ -210,11 +221,6 @@ class FractalApp(QMainWindow):
             for i in range(6):
                 field_list[i].setText(str(value[i]))
                 field_list[i].setCursorPosition(0)
-
-#         for point_field, point in (self.u_fields, self.o_fields, self.v_fields):
-#             for i in range(6):
-#                 point_field[i].setText(str(self.settings.u[i]))
-#                 point_field[i].setCursorPosition(0)
 
     def setup_colormap_dropdown(self):
         """Set up a dropdown menu for selecting colormaps."""
@@ -386,22 +392,33 @@ class FractalApp(QMainWindow):
 
     def randomize_settings(self):
         logging.info("Randomizing fractal settings...")
-        self.settings = FractalSettings(
-            u=np.random.normal(size=6),
-            o=np.random.normal(size=6),
-            v=np.random.normal(size=6),
-            center=(0.0, 0.0),
-            rotation=0.0,
-            scale=4.0,
-        )
+        for col in range(3):
+            if not self.col_toggled[col]:  # Column is not toggled
+                new_values = np.random.normal(size=6)
+                for row in range(6):
+                    if not self.row_toggled[row]:  # Row is not toggled
+                        if col == 0:  # u
+                            self.settings.u[row] = new_values[row]
+                        elif col == 1:  # o
+                            self.settings.o[row] = new_values[row]
+                        elif col == 2:  # v
+                            self.settings.v[row] = new_values[row]
         self.update_uov_inputs()
         self.render_fractal()
 
     def perturb_settings(self):
         logging.info("Perturbing fractal settings...")
-        self.settings.u += np.random.normal(scale=0.05, size=self.settings.u.shape)
-        self.settings.o += np.random.normal(scale=0.05, size=self.settings.o.shape)
-        self.settings.v += np.random.normal(scale=0.05, size=self.settings.v.shape)
+        for col in range(3):
+            if not self.col_toggled[col]:  # Column is not toggled
+                perturbation = np.random.normal(scale=0.05, size=6)
+                for row in range(6):
+                    if not self.row_toggled[row]:  # Row is not toggled
+                        if col == 0:  # u
+                            self.settings.u[row] += perturbation[row]
+                        elif col == 1:  # o
+                            self.settings.o[row] += perturbation[row]
+                        elif col == 2:  # v
+                            self.settings.v[row] += perturbation[row]
         self.update_uov_inputs()
         self.render_fractal()
 
@@ -503,6 +520,27 @@ class FractalApp(QMainWindow):
             rotation=settings_dict["rotation"],
             scale=settings_dict["scale"],
         )
+
+    def toggle_row(self, row):
+        """Toggle the state of a row."""
+        self.row_toggled[row] = not self.row_toggled[row]
+        label = self.findChild(QLabel, f"row_{row}")
+        if label:
+            label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
+
+    def toggle_column(self, col):
+        """Toggle the state of a column."""
+        self.col_toggled[col] = not self.col_toggled[col]
+        label = self.findChild(QLabel, f"col_{col}")
+        if label:
+            label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
+
+    def get_toggle_style(self, toggled):
+        """Return the stylesheet for a toggled or untoggled label."""
+        if toggled:
+            return "background-color: #007ACC; color: white; font-weight: bold;"
+        else:
+            return "background-color: none; color: black; font-weight: normal;"
 
     def eventFilter(self, source, event):
         """Handle mouse events for rectangle selection."""
