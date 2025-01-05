@@ -169,3 +169,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Repo specific
+saves/*
+!saves/expulia.yaml
+!saves/julia.yaml
+!saves/mandelbrot.yaml
+!saves/xmas.yaml
