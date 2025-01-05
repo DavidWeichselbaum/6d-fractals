@@ -4,9 +4,11 @@ from copy import deepcopy
 
 import numpy as np
 import matplotlib.cm as cm
+from matplotlib import colormaps
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout
 )
+from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
 from PyQt5.QtGui import QPixmap, QImage, QPen
 
@@ -108,9 +110,21 @@ class FractalApp(QMainWindow):
         self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
         layout.addWidget(self.graphics_view)
 
+
     def setup_controls(self):
         """Set up the control buttons."""
         controls_layout = QVBoxLayout()
+
+        # Add reset and history controls
+        controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
+        controls_layout.addWidget(self.create_button("⟲", "Go Back (Shortcut: Backspace)", self.go_back))
+
+        # Add randomize and perturb controls
+        controls_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
+        controls_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
+
+        # Add colormap dropdown
+        controls_layout.addWidget(self.setup_colormap_dropdown())
 
         # Add zoom controls
         controls_layout.addLayout(self.setup_zoom_controls())
@@ -121,18 +135,34 @@ class FractalApp(QMainWindow):
         # Add rotate controls
         controls_layout.addLayout(self.setup_rotate_controls())
 
-        # Add reset and history controls
-        controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
-        controls_layout.addWidget(self.create_button("⟲", "Go Back (Shortcut: Backspace)", self.go_back))
-
-        # Add randomize and perturb controls
-        controls_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
-        controls_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
-
         # Add a spacer to center the controls vertically
         controls_layout.addStretch()
 
         return controls_layout
+
+    def setup_colormap_dropdown(self):
+        """Set up a dropdown menu for selecting colormaps."""
+        colormap_dropdown = QComboBox()
+        colormap_dropdown.setToolTip("Select a colormap for the fractal")
+        colormap_dropdown.addItems(sorted(cm.cmap_d.keys()))  # Add all available colormaps
+        colormap_dropdown.setCurrentText("inferno")  # Default colormap
+        colormap_dropdown.currentTextChanged.connect(self.update_colormap)
+        return colormap_dropdown
+
+    def setup_colormap_dropdown(self):
+        """Set up a dropdown menu for selecting colormaps."""
+        colormap_dropdown = QComboBox()
+        colormap_dropdown.setToolTip("Select a colormap for the fractal")
+        colormap_dropdown.addItems(sorted(colormaps.keys()))  # Add all available colormaps
+        colormap_dropdown.setCurrentText("inferno")  # Default colormap
+        colormap_dropdown.currentTextChanged.connect(self.update_colormap)
+        return colormap_dropdown
+
+    def update_colormap(self, colormap_name):
+        """Update the colormap and re-render the fractal."""
+        logging.info(f"Changing colormap to: {colormap_name}")
+        self.colormap = cm.get_cmap(colormap_name)
+        self.render_fractal()
 
     def setup_zoom_controls(self):
         """Set up zoom in and zoom out controls."""
