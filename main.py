@@ -66,8 +66,8 @@ class FractalApp(QMainWindow):
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
 
-        self.init_ui()
         self.update_colormap("inferno")
+        self.init_ui()
 
     def init_ui(self):
         self.setWindowTitle("Fractal Explorer with Rectangle Selection")
@@ -246,11 +246,28 @@ class FractalApp(QMainWindow):
         border_color = self.colormap(0.6)  # RGBA tuple for borders
         input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
 
+        # Toggled and untoggled styles for labels
+        untoggled_bg_color = self.colormap(0.1)  # Light background for untoggled
+        untoggled_text_color = self.colormap(0.3)  # Dark text for untoggled
+        toggled_bg_color = self.colormap(0.3)  # Dark background for toggled
+        toggled_text_color = self.colormap(0.1)  # Light text for toggled
+
         # Convert colors to RGB values
-        r_bg, g_bg, b_bg, _ = [int(c * 255) for c in background_color]
-        r_text, g_text, b_text, _ = [int(c * 255) for c in text_color]
-        r_border, g_border, b_border, _ = [int(c * 255) for c in border_color]
-        r_input_bg, g_input_bg, b_input_bg, _ = [int(c * 255) for c in input_bg_color]
+        def rgba_to_rgb(color):
+            return [int(c * 255) for c in color[:3]]
+
+        r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
+        r_text, g_text, b_text = rgba_to_rgb(text_color)
+        r_border, g_border, b_border = rgba_to_rgb(border_color)
+        r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(input_bg_color)
+        r_untoggled_bg, g_untoggled_bg, b_untoggled_bg = rgba_to_rgb(untoggled_bg_color)
+        r_untoggled_text, g_untoggled_text, b_untoggled_text = rgba_to_rgb(untoggled_text_color)
+        r_toggled_bg, g_toggled_bg, b_toggled_bg = rgba_to_rgb(toggled_bg_color)
+        r_toggled_text, g_toggled_text, b_toggled_text = rgba_to_rgb(toggled_text_color)
+
+        # Save the toggled and untoggled styles
+        self.toggled_style = f"background-color: rgb({r_toggled_bg}, {g_toggled_bg}, {b_toggled_bg}); color: rgb({r_toggled_text}, {g_toggled_text}, {b_toggled_text}); font-weight: bold;"
+        self.untoggled_style = f"background-color: rgb({r_untoggled_bg}, {g_untoggled_bg}, {b_untoggled_bg}); color: rgb({r_untoggled_text}, {g_untoggled_text}, {b_untoggled_text}); font-weight: normal;"
 
         # Update stylesheet for the entire app
         self.setStyleSheet(f"""
@@ -295,6 +312,20 @@ class FractalApp(QMainWindow):
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
         """)
+
+        # Update row and column labels to reflect their toggled state
+        for row in range(6):
+            label = self.findChild(QLabel, f"row_{row}")
+            if label:
+                label.setStyleSheet(self.toggled_style if self.row_toggled[row] else self.untoggled_style)
+        for col in range(3):
+            label = self.findChild(QLabel, f"col_{col}")
+            if label:
+                label.setStyleSheet(self.toggled_style if self.col_toggled[col] else self.untoggled_style)
+
+    def get_toggle_style(self, toggled):
+        """Return the stylesheet for a toggled or untoggled label."""
+        return self.toggled_style if toggled else self.untoggled_style
 
     def setup_zoom_controls(self):
         """Set up zoom in and zoom out controls."""
@@ -534,13 +565,6 @@ class FractalApp(QMainWindow):
         label = self.findChild(QLabel, f"col_{col}")
         if label:
             label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
-
-    def get_toggle_style(self, toggled):
-        """Return the stylesheet for a toggled or untoggled label."""
-        if toggled:
-            return "background-color: #007ACC; color: white; font-weight: bold;"
-        else:
-            return "background-color: none; color: black; font-weight: normal;"
 
     def eventFilter(self, source, event):
         """Handle mouse events for rectangle selection."""
