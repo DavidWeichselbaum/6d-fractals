@@ -182,6 +182,16 @@ class FractalApp(QMainWindow):
                 background-color: rgb({r_border}, {g_border}, {b_border});
                 color: rgb({r_bg}, {g_bg}, {b_bg});
             }}
+            QComboBox {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
             QScrollBar {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
             }}
@@ -191,10 +201,11 @@ class FractalApp(QMainWindow):
             QScrollBar::add-line, QScrollBar::sub-line {{
                 background-color: rgb({r_border}, {g_border}, {b_border});
             }}
+            QGraphicsView {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
         """)
-        bg_color = QColor(r_bg, g_bg, b_bg)  # Use QColor for the background
-        bg_brush = QBrush(bg_color)  # Create a QBrush with the QColor
-        self.graphics_scene.setBackgroundBrush(bg_brush)
 
     def setup_zoom_controls(self):
         """Set up zoom in and zoom out controls."""
