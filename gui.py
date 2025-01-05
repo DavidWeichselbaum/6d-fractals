@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
-from PyQt5.QtGui import QPixmap, QImage, QPen
+from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
 
 from main import sample_plane, compute_fractal, FractalSettings
 
@@ -65,6 +65,7 @@ class FractalApp(QMainWindow):
         self.colormap = cm.get_cmap("inferno")
 
         self.init_ui()
+        self.update_colormap("inferno")
 
     def init_ui(self):
         self.setWindowTitle("Fractal Explorer with Rectangle Selection")
@@ -100,9 +101,6 @@ class FractalApp(QMainWindow):
         # Connect key press events
         self.graphics_view.setFocus()
         self.graphics_view.keyPressEvent = self.on_key
-
-        # Initial render
-        self.render_fractal()
 
     def setup_fractal_display(self, layout):
         """Set up the fractal display area."""
@@ -146,25 +144,57 @@ class FractalApp(QMainWindow):
         """Set up a dropdown menu for selecting colormaps."""
         colormap_dropdown = QComboBox()
         colormap_dropdown.setToolTip("Select a colormap for the fractal")
-        colormap_dropdown.addItems(sorted(cm.cmap_d.keys()))  # Add all available colormaps
-        colormap_dropdown.setCurrentText("inferno")  # Default colormap
-        colormap_dropdown.currentTextChanged.connect(self.update_colormap)
-        return colormap_dropdown
-
-    def setup_colormap_dropdown(self):
-        """Set up a dropdown menu for selecting colormaps."""
-        colormap_dropdown = QComboBox()
-        colormap_dropdown.setToolTip("Select a colormap for the fractal")
         colormap_dropdown.addItems(sorted(colormaps.keys()))  # Add all available colormaps
         colormap_dropdown.setCurrentText("inferno")  # Default colormap
         colormap_dropdown.currentTextChanged.connect(self.update_colormap)
         return colormap_dropdown
 
-    def update_colormap(self, colormap_name):
+    def update_colormap(self, colormap_name, render = True):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
         self.colormap = cm.get_cmap(colormap_name)
+        self.update_interface_color()
         self.render_fractal()
+
+    def update_interface_color(self):
+        """Update the interface colors to match the colormap."""
+        # Extract colors from the colormap
+        background_color = self.colormap(0)  # RGBA tuple for background
+        text_color = self.colormap(0.3)  # RGBA tuple for text
+        border_color = self.colormap(0.6)  # RGBA tuple for borders
+
+        # Convert colors to RGB values
+        r_bg, g_bg, b_bg, _ = [int(c * 255) for c in background_color]
+        r_text, g_text, b_text, _ = [int(c * 255) for c in text_color]
+        r_border, g_border, b_border, _ = [int(c * 255) for c in border_color]
+
+        # Update stylesheet for the entire app
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+            }}
+            QLabel, QPushButton, QComboBox {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QPushButton:hover {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+                color: rgb({r_bg}, {g_bg}, {b_bg});
+            }}
+            QScrollBar {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+            }}
+            QScrollBar::handle {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+            }}
+            QScrollBar::add-line, QScrollBar::sub-line {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+            }}
+        """)
+        bg_color = QColor(r_bg, g_bg, b_bg)  # Use QColor for the background
+        bg_brush = QBrush(bg_color)  # Create a QBrush with the QColor
+        self.graphics_scene.setBackgroundBrush(bg_brush)
 
     def setup_zoom_controls(self):
         """Set up zoom in and zoom out controls."""
