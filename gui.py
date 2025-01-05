@@ -17,6 +17,7 @@ from main import sample_plane, compute_fractal, FractalSettings
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+# RESOLUTION = (500, 500)
 RESOLUTION = (1000, 800)
 # RESOLUTION = (1920, 1080)
 ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
@@ -90,6 +91,7 @@ class FractalApp(QMainWindow):
         self.start_pos = None
         self.constrained_end_pos = None
         self.selection_rect = None
+        self.selection_rect_visual = None
 
         # Enable mouse events for rectangle selection
         self.graphics_view.setMouseTracking(True)
@@ -336,24 +338,25 @@ class FractalApp(QMainWindow):
             return True
         elif event.type() == event.MouseMove and self.start_pos:
             end_pos = event.pos()
-            self.constrained_end_pos = self.draw_selection_rectangle(self.start_pos, end_pos)
+            self.draw_selection_rectangle(self.start_pos, end_pos)
             return True
         elif event.type() == event.MouseButtonRelease and event.button() == Qt.LeftButton:
-            if self.start_pos and self.constrained_end_pos:
-                self.handle_selection(self.start_pos, self.constrained_end_pos)
+            if self.selection_rect:
+                self.handle_selection()
                 self.start_pos = None
-                self.constrained_end_pos = None
             return True
         return super().eventFilter(source, event)
 
     def draw_selection_rectangle(self, start_pos, end_pos):
         """Draw the selection rectangle with aspect ratio constraint and boundary checks."""
-        if self.selection_rect:
-            self.graphics_scene.removeItem(self.selection_rect)
+        if self.selection_rect_visual:
+            self.graphics_scene.removeItem(self.selection_rect_visual)
 
+        # Map start and end positions to scene coordinates
         start_scene = self.graphics_view.mapToScene(start_pos)
         end_scene = self.graphics_view.mapToScene(end_pos)
 
+        # Calculate dx and dy while constraining to the aspect ratio
         dx = abs(end_scene.x() - start_scene.x())
         dy = abs(end_scene.y() - start_scene.y())
 
@@ -362,33 +365,35 @@ class FractalApp(QMainWindow):
         else:
             dx = dy * ASPECT_RATIO
 
+        # Adjust for dragging direction
         if end_scene.x() < start_scene.x():
             dx = -dx
         if end_scene.y() < start_scene.y():
             dy = -dy
 
+        # Constrain the rectangle to stay within the scene boundaries
         constrained_end_scene = QPointF(start_scene.x() + dx, start_scene.y() + dy)
         scene_rect = self.graphics_scene.sceneRect()
         if not scene_rect.contains(start_scene) or not scene_rect.contains(constrained_end_scene):
             return
 
-        rect = QRectF(start_scene, constrained_end_scene)
-        self.selection_rect = self.graphics_scene.addRect(rect, QPen(Qt.red, 2))
-        constrained_end_pos = self.graphics_view.mapFromScene(constrained_end_scene)
-        return constrained_end_pos
+        # Create and display the selection rectangle
+        self.selection_rect = QRectF(start_scene, constrained_end_scene)
+        self.selection_rect_visual = self.graphics_scene.addRect(self.selection_rect, QPen(Qt.red, 2))
 
-    def handle_selection(self, press_pos, release_pos):
+    def handle_selection(self):
         """Handle rectangle selection to adjust the fractal view."""
-        if self.selection_rect:
-            self.graphics_scene.removeItem(self.selection_rect)
-            self.selection_rect = None
+        if self.selection_rect_visual:
+            self.graphics_scene.removeItem(self.selection_rect_visual)
+            self.selection_rect_visual = None
 
-        press_scene = self.graphics_view.mapToScene(press_pos)
-        release_scene = self.graphics_view.mapToScene(release_pos)
+        # Get top-left and bottom-right corners of the rectangle
+        top_left = self.selection_rect.topLeft()
+        bottom_right = self.selection_rect.bottomRight()
+        x0, y0 = top_left.x(), top_left.y()
+        x1, y1 = bottom_right.x(), bottom_right.y()
 
-        x0, y0 = press_scene.x(), press_scene.y()
-        x1, y1 = release_scene.x(), release_scene.y()
-
+        # Calculate the width and height of the rectangle in pixels
         width_pixels = abs(x1 - x0)
         height_pixels = abs(y1 - y0)
 
@@ -396,16 +401,21 @@ class FractalApp(QMainWindow):
             logging.info("Selection too small!")
             return
 
-        cx = (x0 + x1) / 2 / RESOLUTION[0] - 0.5
-        cy = (y0 + y1) / 2 / RESOLUTION[1] - 0.5
+        # Normalize the rectangle center and adjust the fractal's center and scale
+        cx = (x0 + x1) / 2 - self.graphics_scene.sceneRect().x()
+        cy = (y0 + y1) / 2 - self.graphics_scene.sceneRect().y()
+
+        cx_normalized = (cx / self.graphics_scene.sceneRect().width() - 0.5) * RESOLUTION[0] / RESOLUTION[1]
+        cy_normalized = (cy / self.graphics_scene.sceneRect().height() - 0.5)
 
         self.settings.center = (
-            self.settings.center[0] + cx * self.settings.scale,
-            self.settings.center[1] + cy * self.settings.scale
+            self.settings.center[0] + cx_normalized * self.settings.scale,
+            self.settings.center[1] + cy_normalized * self.settings.scale
         )
         self.settings.scale *= min(width_pixels / RESOLUTION[0], height_pixels / RESOLUTION[1])
 
         self.render_fractal()
+        self.selection_rect = None
 
 
 if __name__ == "__main__":
@@ -413,7 +423,8 @@ if __name__ == "__main__":
         u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
         o=np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
         v=np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
-        center=(-0.4, 0),
+        # center=(-0.4, 0),
+        center=(0, 0),
         rotation=0,
         scale=4.0,
     )
