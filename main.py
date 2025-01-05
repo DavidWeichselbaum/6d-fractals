@@ -149,27 +149,39 @@ class FractalApp(QMainWindow):
         return controls_layout
 
     def setup_uov_inputs(self):
-        """Create compact input fields for u, o, v vectors."""
+        """Create compact input fields for u, o, v vectors with labels."""
         uov_layout = QGridLayout()
         self.u_fields = []
         self.o_fields = []
         self.v_fields = []
+        input_width = 60
 
-        labels = ["Top", "Center", "Right"]
+        # Labels for the first column
+        row_labels = [
+            "c a",
+            "c b",
+            "z_0 a",
+            "z_0 b",
+            "power a",
+            "power b",
+        ]
+        for row, label in enumerate(row_labels):
+            row_label = QLabel(label)
+            row_label.setFixedWidth(input_width)  # Set a fixed width for the input field
+            uov_layout.addWidget(row_label, row + 1, 0)  # First column for row labels
+
+        # Add column headers and input fields
+        column_labels = ["Top", "Center", "Right"]
         fields = [self.u_fields, self.o_fields, self.v_fields]
         values = [self.settings.u, self.settings.o, self.settings.v]
-
-        input_width = 60  # Adjust width of input fields
-
-        for col, (label, field_list, value) in enumerate(zip(labels, fields, values)):
-            uov_layout.addWidget(QLabel(label), 0, col)  # Add column headers
-
+        for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
+            uov_layout.addWidget(QLabel(header), 0, col + 1)  # Column headers (shifted by 1)
             for row in range(6):  # 6 values in each vector
                 line_edit = QLineEdit(str(value[row]))
-                line_edit.setToolTip(f"{label} Component {row + 1}")
+                line_edit.setToolTip(f"{header} Component {row_labels[row]}")
                 line_edit.setFixedWidth(input_width)  # Set a fixed width for the input field
                 line_edit.returnPressed.connect(self.update_uov)
-                uov_layout.addWidget(line_edit, row + 1, col)
+                uov_layout.addWidget(line_edit, row + 1, col + 1)
                 field_list.append(line_edit)
 
         return uov_layout
@@ -177,6 +189,8 @@ class FractalApp(QMainWindow):
     def update_uov(self):
         """Update u, o, v vectors from input fields and re-render."""
         try:
+            logging.info(f"Updated u, o, v vectors from u={self.settings.u}, o={self.settings.o}, v={self.settings.v}")
+            logging.warning(self.u_fields == self.o_fields)
             # Update settings.u, settings.o, settings.v based on input
             self.settings.u = np.array([float(field.text()) for field in self.u_fields])
             self.settings.o = np.array([float(field.text()) for field in self.o_fields])
@@ -190,10 +204,17 @@ class FractalApp(QMainWindow):
 
     def update_uov_inputs(self):
         """Update the input fields to reflect the current u, o, v settings."""
-        for point_field in (self.u_fields, self.o_fields, self.v_fields):
+        fields = [self.u_fields, self.o_fields, self.v_fields]
+        values = [self.settings.u, self.settings.o, self.settings.v]
+        for field_list, value in zip(fields, values):
             for i in range(6):
-                point_field[i].setText(str(self.settings.u[i]))
-                point_field[i].setCursorPosition(0)
+                field_list[i].setText(str(value[i]))
+                field_list[i].setCursorPosition(0)
+
+#         for point_field, point in (self.u_fields, self.o_fields, self.v_fields):
+#             for i in range(6):
+#                 point_field[i].setText(str(self.settings.u[i]))
+#                 point_field[i].setCursorPosition(0)
 
     def setup_colormap_dropdown(self):
         """Set up a dropdown menu for selecting colormaps."""
@@ -455,6 +476,7 @@ class FractalApp(QMainWindow):
                 settings_dict = yaml.safe_load(file)
                 self.settings = self.dict_to_settings(settings_dict)
             logging.info(f"Settings loaded from {file_path}")
+            self.update_uov_inputs()
             self.render_fractal()
 
     @staticmethod
