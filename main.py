@@ -155,7 +155,7 @@ class FractalApp(QMainWindow):
         self.o_fields = []
         self.v_fields = []
 
-        labels = ["U (Top)", "O (Center)", "V (Right)"]
+        labels = ["Top", "Center", "Right"]
         fields = [self.u_fields, self.o_fields, self.v_fields]
         values = [self.settings.u, self.settings.o, self.settings.v]
 
@@ -217,11 +217,13 @@ class FractalApp(QMainWindow):
         background_color = self.colormap(0)  # RGBA tuple for background
         text_color = self.colormap(0.3)  # RGBA tuple for text
         border_color = self.colormap(0.6)  # RGBA tuple for borders
+        input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
 
         # Convert colors to RGB values
         r_bg, g_bg, b_bg, _ = [int(c * 255) for c in background_color]
         r_text, g_text, b_text, _ = [int(c * 255) for c in text_color]
         r_border, g_border, b_border, _ = [int(c * 255) for c in border_color]
+        r_input_bg, g_input_bg, b_input_bg, _ = [int(c * 255) for c in input_bg_color]
 
         # Update stylesheet for the entire app
         self.setStyleSheet(f"""
@@ -258,6 +260,11 @@ class FractalApp(QMainWindow):
             }}
             QGraphicsView {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QLineEdit {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
         """)
