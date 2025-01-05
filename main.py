@@ -140,7 +140,9 @@ class FractalApp(QMainWindow):
         controls_layout.addLayout(self.setup_rotate_controls())
 
         # Add fields for u, o, v vectors
-        controls_layout.addWidget(QLabel("Edit Fractal Parameters"))
+        parameters_label = QLabel("Fractal Parameters")
+        parameters_label.setToolTip("Change parameters or fix column and row headers by clicking them.")
+        controls_layout.addWidget(parameters_label)
         controls_layout.addLayout(self.setup_uov_inputs())
 
         # Add a spacer to center the controls vertically
@@ -160,12 +162,12 @@ class FractalApp(QMainWindow):
 
         # Row labels with toggle behavior
         row_labels = [
-            "c real",
-            "c imaginary",
-            "z_0 real",
-            "z_0 imaginary",
-            "power real",
-            "power imaginary",
+            "c a",
+            "c b",
+            "z_0 a",
+            "z_0 b",
+            "power a",
+            "power b",
         ]
         for row, label in enumerate(row_labels):
             row_label = QLabel(label)
