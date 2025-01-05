@@ -6,8 +6,9 @@ import yaml
 import numpy as np
 from matplotlib import colormaps
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel
 )
+
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
 from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
@@ -111,7 +112,7 @@ class FractalApp(QMainWindow):
         layout.addWidget(self.graphics_view)
 
     def setup_controls(self):
-        """Set up the control buttons."""
+        """Set up the control buttons and input fields."""
         controls_layout = QVBoxLayout()
 
         # Add save and load controls
@@ -138,10 +139,61 @@ class FractalApp(QMainWindow):
         # Add rotate controls
         controls_layout.addLayout(self.setup_rotate_controls())
 
+        # Add fields for u, o, v vectors
+        controls_layout.addWidget(QLabel("Edit Fractal Parameters"))
+        controls_layout.addLayout(self.setup_uov_inputs())
+
         # Add a spacer to center the controls vertically
         controls_layout.addStretch()
 
         return controls_layout
+
+    def setup_uov_inputs(self):
+        """Create compact input fields for u, o, v vectors."""
+        uov_layout = QGridLayout()
+        self.u_fields = []
+        self.o_fields = []
+        self.v_fields = []
+
+        labels = ["U (Top)", "O (Center)", "V (Right)"]
+        fields = [self.u_fields, self.o_fields, self.v_fields]
+        values = [self.settings.u, self.settings.o, self.settings.v]
+
+        input_width = 60  # Adjust width of input fields
+
+        for col, (label, field_list, value) in enumerate(zip(labels, fields, values)):
+            uov_layout.addWidget(QLabel(label), 0, col)  # Add column headers
+
+            for row in range(6):  # 6 values in each vector
+                line_edit = QLineEdit(str(value[row]))
+                line_edit.setToolTip(f"{label} Component {row + 1}")
+                line_edit.setFixedWidth(input_width)  # Set a fixed width for the input field
+                line_edit.returnPressed.connect(self.update_uov)
+                uov_layout.addWidget(line_edit, row + 1, col)
+                field_list.append(line_edit)
+
+        return uov_layout
+
+    def update_uov(self):
+        """Update u, o, v vectors from input fields and re-render."""
+        try:
+            # Update settings.u, settings.o, settings.v based on input
+            self.settings.u = np.array([float(field.text()) for field in self.u_fields])
+            self.settings.o = np.array([float(field.text()) for field in self.o_fields])
+            self.settings.v = np.array([float(field.text()) for field in self.v_fields])
+            logging.info(f"Updated u, o, v vectors: u={self.settings.u}, o={self.settings.o}, v={self.settings.v}")
+
+            # Re-render fractal
+            self.render_fractal()
+        except ValueError:
+            logging.warning("Invalid input in one or more fields. Please enter numeric values.")
+
+    def update_uov_inputs(self):
+        """Update the input fields to reflect the current u, o, v settings."""
+        for point_field in (self.u_fields, self.o_fields, self.v_fields):
+            for i in range(6):
+                point_field[i].setText(str(self.settings.u[i]))
+                point_field[i].setCursorPosition(0)
 
     def setup_colormap_dropdown(self):
         """Set up a dropdown menu for selecting colormaps."""
@@ -314,6 +366,7 @@ class FractalApp(QMainWindow):
             rotation=0.0,
             scale=4.0,
         )
+        self.update_uov_inputs()
         self.render_fractal()
 
     def perturb_settings(self):
@@ -321,6 +374,7 @@ class FractalApp(QMainWindow):
         self.settings.u += np.random.normal(scale=0.05, size=self.settings.u.shape)
         self.settings.o += np.random.normal(scale=0.05, size=self.settings.o.shape)
         self.settings.v += np.random.normal(scale=0.05, size=self.settings.v.shape)
+        self.update_uov_inputs()
         self.render_fractal()
 
     def move(self, direction):
