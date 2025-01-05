@@ -4,7 +4,6 @@ from copy import deepcopy
 
 import yaml
 import numpy as np
-import matplotlib.cm as cm
 from matplotlib import colormaps
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog
@@ -18,10 +17,9 @@ from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
 
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# RESOLUTION = (500, 500)
+
 RESOLUTION = (1000, 800)
 # RESOLUTION = (1920, 1080)
 ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
@@ -66,7 +64,6 @@ class FractalApp(QMainWindow):
         super().__init__()
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
-        self.colormap = cm.get_cmap("inferno")
 
         self.init_ui()
         self.update_colormap("inferno")
@@ -94,7 +91,6 @@ class FractalApp(QMainWindow):
 
         # Variables for rectangle selection
         self.start_pos = None
-        self.constrained_end_pos = None
         self.selection_rect = None
         self.selection_rect_visual = None
 
@@ -113,7 +109,6 @@ class FractalApp(QMainWindow):
         self.graphics_view.setScene(self.graphics_scene)
         self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
         layout.addWidget(self.graphics_view)
-
 
     def setup_controls(self):
         """Set up the control buttons."""
@@ -160,7 +155,7 @@ class FractalApp(QMainWindow):
     def update_colormap(self, colormap_name, render = True):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
-        self.colormap = cm.get_cmap(colormap_name)
+        self.colormap = colormaps.get_cmap(colormap_name)
         self.update_interface_color()
         self.render_fractal()
 
@@ -385,7 +380,6 @@ class FractalApp(QMainWindow):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Fractal Settings", "", "YAML Files (*.yaml);;All Files (*)", options=options)
         if file_path:
-            # Convert settings to a dictionary for serialization
             settings_dict = self.settings_to_dict(self.settings)
             with open(file_path, "w") as file:
                 yaml.dump(settings_dict, file, default_flow_style=False)
