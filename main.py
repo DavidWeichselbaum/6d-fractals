@@ -120,7 +120,7 @@ class FractalApp(QMainWindow):
         controls_layout = QVBoxLayout()
 
         # Add file controls in a compact frame
-        file_controls_group = QGroupBox("File Controls")
+        file_controls_group = QGroupBox("File")
         file_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
         file_controls_layout = QVBoxLayout()
         file_controls_layout.addWidget(self.create_button("Save Settings", "Save current settings to a file", self.save_settings))
@@ -129,7 +129,7 @@ class FractalApp(QMainWindow):
         controls_layout.addWidget(file_controls_group, alignment=Qt.AlignTop)
 
         # Add reset and history controls in a compact frame
-        history_controls_group = QGroupBox("History Controls")
+        history_controls_group = QGroupBox("History")
         history_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
         history_controls_layout = QVBoxLayout()
         history_controls_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
@@ -147,7 +147,7 @@ class FractalApp(QMainWindow):
         controls_layout.addWidget(randomize_controls_group, alignment=Qt.AlignTop)
 
         # Add colormap dropdown in a compact frame
-        colormap_group = QGroupBox("Colormap")
+        colormap_group = QGroupBox("Colors")
         colormap_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
         colormap_layout = QVBoxLayout()
         colormap_layout.addWidget(self.setup_colormap_dropdown())
@@ -162,7 +162,7 @@ class FractalApp(QMainWindow):
         zoom_controls_group.setLayout(zoom_controls_layout)
         controls_layout.addWidget(zoom_controls_group, alignment=Qt.AlignTop)
 
-        move_controls_group = QGroupBox("Move Controls")
+        move_controls_group = QGroupBox("Moving")
         move_controls_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
         move_controls_layout = QVBoxLayout()
         move_controls_layout.addLayout(self.setup_move_controls())
@@ -177,7 +177,7 @@ class FractalApp(QMainWindow):
         controls_layout.addWidget(rotate_controls_group, alignment=Qt.AlignTop)
 
         # Add fields for u, o, v vectors in a compact frame
-        parameters_group = QGroupBox("Fractal Parameters")
+        parameters_group = QGroupBox("Parameters")
         parameters_group.setMaximumWidth(self.CONTROLLS_WIDTH)  # Set maximum width
         parameters_layout = QVBoxLayout()
         parameters_label = QLabel("Edit Fractal Parameters")
@@ -353,6 +353,21 @@ class FractalApp(QMainWindow):
                 color: rgb({r_text}, {g_text}, {b_text});
                 background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QGroupBox {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 2px solid rgb({r_border}, {g_border}, {b_border});
+                border-radius: 5px;
+                font-weight: bold;
+                margin-top: 10px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top right;
+                padding: 0 5px;
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
             }}
         """)
 
