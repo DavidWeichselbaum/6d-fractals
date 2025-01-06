@@ -185,6 +185,10 @@ class FractalApp(QMainWindow):
         translation_controls = self.setup_translation_controls()
         controls_layout.addWidget(translation_controls, alignment=Qt.AlignTop)
 
+        # Add Rotation Controls
+        rotation_controls = self.setup_rotation_controls()
+        controls_layout.addWidget(rotation_controls, alignment=Qt.AlignTop)
+
         controls_layout.addStretch()
         return controls_layout
 
@@ -442,6 +446,47 @@ class FractalApp(QMainWindow):
         translation_group.setLayout(translation_layout)
         return translation_group
 
+    def setup_rotation_controls(self):
+        """Create a triangular rotation control table with component combinations and a rotation amount field."""
+        rotation_group = QGroupBox("Rotation")
+        rotation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+
+        rotation_layout = QVBoxLayout()
+        table_layout = QGridLayout()
+
+        # Add headers for the vector components
+        headers = self.VECTOR_COMPONENT_NAMES
+        for col, header in enumerate(headers):
+            header_label = QLabel(header)
+            header_label.setAlignment(Qt.AlignCenter)
+            table_layout.addWidget(header_label, 0, col + 1)  # Offset by one column for triangular layout
+            table_layout.addWidget(QLabel(header), col + 1, 0)  # Row headers
+
+        # Add rotation buttons in a triangular arrangement
+        for row in range(len(headers)):
+            for col in range(row + 1, len(headers)):
+                # rotate_button = QPushButton(f"{headers[row]} ↔ {headers[col]}")
+                rotate_button = QPushButton(f"{headers[row]} ↔ {headers[col]}")
+                rotate_button.setToolTip(f"Rotate around axis defined by {headers[row]} and {headers[col]}")
+                rotate_button.clicked.connect(lambda _, a=row, b=col: self.rotate_plane(a, b))
+                table_layout.addWidget(rotate_button, row + 1, col + 1)
+
+        # Add the table to the layout
+        rotation_layout.addLayout(table_layout)
+
+        # Add rotation amount field
+        rotation_amount_layout = QHBoxLayout()
+        rotation_amount_label = QLabel("Rotation:")
+        self.rotation_amount = QLineEdit("0.1")
+        self.rotation_amount.setFixedWidth(self.INPUT_WIDTH)
+        self.rotation_amount.setToolTip("Set the rotation angle in radians")
+        rotation_amount_layout.addWidget(rotation_amount_label)
+        rotation_amount_layout.addWidget(self.rotation_amount)
+        rotation_layout.addLayout(rotation_amount_layout)
+
+        rotation_group.setLayout(rotation_layout)
+        return rotation_group
+
     def create_button(self, label, tooltip, callback):
         """Create a reusable button."""
         button = QPushButton(label)
@@ -551,26 +596,61 @@ class FractalApp(QMainWindow):
         """
         try:
             displacement = float(self.displacement.text()) * direction
-            translation_vector = np.zeros(6)  # Initialize a zero vector for translation
-
-            if dimension in self.VECTOR_COMPONENT_NAME_INDICES:
-                translation_vector[self.VECTOR_COMPONENT_NAME_INDICES[dimension]] = displacement
-            else:
-                logging.warning(f"Unknown dimension: {dimension}")
-                return
-
-            # Apply the translation to the entire plane (u, o, v)
-            self.settings.u += translation_vector
-            self.settings.o += translation_vector
-            self.settings.v += translation_vector
-
-            # Update the UI and re-render the fractal
-            self.update_uov_inputs()
-            self.render_fractal()
-            logging.warning(f"Translated {dimension} by {displacement} in the {direction} direction.")
-
         except ValueError:
             logging.warning("Invalid displacement value. Please enter a numeric value.")
+            return
+
+        translation_vector = np.zeros(6)  # Initialize a zero vector for translation
+
+        if dimension in self.VECTOR_COMPONENT_NAME_INDICES:
+            translation_vector[self.VECTOR_COMPONENT_NAME_INDICES[dimension]] = displacement
+        else:
+            logging.warning(f"Unknown dimension: {dimension}")
+            return
+
+        # Apply the translation to the entire plane (u, o, v)
+        self.settings.u += translation_vector
+        self.settings.o += translation_vector
+        self.settings.v += translation_vector
+
+        # Update the UI and re-render the fractal
+        self.update_uov_inputs()
+        self.render_fractal()
+        logging.warning(f"Translated {dimension} by {displacement} in the {direction} direction.")
+
+    def rotate_plane(self, axis1_index, axis2_index):
+        """
+        Rotate the entire plane around the specified axis defined by two dimensions.
+
+        Args:
+            axis1_index (int): The index of the first component.
+            axis2_index (int): The index of the second component.
+        """
+        try:
+            angle_radians = float(self.rotation_amount.text())
+        except ValueError:
+            logging.warning("Invalid rotation amount. Please enter a numeric value.")
+            return
+
+        cos_theta = np.cos(angle_radians)
+        sin_theta = np.sin(angle_radians)
+
+        # Rotation matrix for 2D plane rotation in 6D space
+        rotation_matrix = np.eye(6)
+        rotation_matrix[axis1_index, axis1_index] = cos_theta
+        rotation_matrix[axis1_index, axis2_index] = -sin_theta
+        rotation_matrix[axis2_index, axis1_index] = sin_theta
+        rotation_matrix[axis2_index, axis2_index] = cos_theta
+
+        # Apply rotation to u, o, v vectors
+        self.settings.u = rotation_matrix @ self.settings.u
+        self.settings.o = rotation_matrix @ self.settings.o
+        self.settings.v = rotation_matrix @ self.settings.v
+
+        # Update the UI and re-render
+        self.update_uov_inputs()
+        self.render_fractal()
+        logging.info(f"Rotated around axis ({self.VECTOR_COMPONENT_NAMES[axis1_index]}, {self.VECTOR_COMPONENT_NAMES[axis2_index]}) by {angle_radians} radians.")
 
     def move(self, direction):
         logging.info(f"Moving {direction}...")
