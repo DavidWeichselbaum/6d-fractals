@@ -179,3 +179,5 @@ saves/*
 
 exports/*
 !exports/.gitkeep
+
+log.txt
