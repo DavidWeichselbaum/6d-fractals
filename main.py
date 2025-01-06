@@ -165,6 +165,7 @@ class FractalApp(QMainWindow):
     def create_movement_group(self):
         """Create the Movement group with zoom, move, rotation, and additional parameters."""
         movement_group = QGroupBox("Movement")
+        movement_group.setToolTip("Movement along the view plane.")
         movement_group.setMaximumWidth(self.CONTROLLS_WIDTH)
         movement_layout = QGridLayout()
 
@@ -228,7 +229,7 @@ class FractalApp(QMainWindow):
     def create_parameters_group(self):
         """Create the Parameters group with vector controls and randomize/perturb options."""
         parameters_group = QGroupBox("Parameters")
-        parameters_group.setToolTip("Change parameters or fix column and row headers by clicking them.")
+        parameters_group.setToolTip("Change the 3 points that define the view plane in parameter space.")
         parameters_group.setMaximumWidth(self.CONTROLLS_WIDTH)
 
         parameters_layout = QVBoxLayout()
@@ -281,6 +282,7 @@ class FractalApp(QMainWindow):
         for row, label in enumerate(self.VECTOR_COMPONENT_NAMES):
             row_label = QLabel(label)
             row_label.setObjectName(f"row_{row}")  # Assign a unique objectName
+            row_label.setToolTip("Toogle to exempt from randomization.")
             row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
             row_label.setAlignment(Qt.AlignCenter)
             row_label.mousePressEvent = lambda event, r=row: self.toggle_row(r)  # Bind toggle event
@@ -294,10 +296,14 @@ class FractalApp(QMainWindow):
         for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
             col_label = QLabel(header)
             col_label.setObjectName(f"col_{col}")  # Assign a unique objectName
+            col_label.setToolTip("Toogle to exempt from randomization.")
             col_label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
             col_label.setAlignment(Qt.AlignCenter)
             col_label.mousePressEvent = lambda event, c=col: self.toggle_column(c)  # Bind toggle event
             uov_layout.addWidget(col_label, 0, col + 1)  # Column headers (shifted by 1)
+
+        # paramerters
+        for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
             for row in range(6):
                 line_edit = QLineEdit(str(value[row]))
                 line_edit.setToolTip(f"{header} Component {self.VECTOR_COMPONENT_NAMES[row]}")
@@ -338,6 +344,7 @@ class FractalApp(QMainWindow):
     def create_translation_group(self):
         """Create a 6x3 translation control table with column headers between the up and down arrows."""
         translation_group = QGroupBox("Translation")
+        translation_group.setToolTip("Translating the view plane in parameter space.")
         translation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
 
         translation_layout = QVBoxLayout()
@@ -385,6 +392,7 @@ class FractalApp(QMainWindow):
     def create_rotation_group(self):
         """Create a full rotation control table with bidirectional rotation buttons."""
         rotation_group = QGroupBox("Rotation")
+        rotation_group.setToolTip("Rotating the view plane in parameter space.")
         rotation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
 
         rotation_layout = QVBoxLayout()
