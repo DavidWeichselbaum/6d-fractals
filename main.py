@@ -81,8 +81,9 @@ class FractalApp(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("Fractal Explorer with Rectangle Selection")
-        self.setGeometry(100, 100, 1000, 600)
+        self.setWindowTitle("6D Fractal Explorer")
+        # self.setGeometry(100, 100, 1000, 600)
+        self.showMaximized()
 
         # Main layout: Horizontal layout with fractal display and controls
         main_layout = QHBoxLayout()
@@ -783,6 +784,11 @@ class FractalApp(QMainWindow):
             self.randomize_settings()
         elif event.key() == Qt.Key_Z:
             self.perturb_settings()
+        elif event.key() == Qt.Key_F11:
+            if self.isFullScreen():
+                self.showMaximized()
+            else:
+                self.showFullScreen()
 
     def save_settings(self):
         """Save the current fractal settings to a YAML file."""
