@@ -19,7 +19,7 @@ from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
 from utils.parameters import sample_plane
 from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
-
+from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -495,13 +495,14 @@ class FractalApp(QMainWindow):
         background_color = self.colormap(0.0)  # RGBA tuple for background
         text_color = self.colormap(0.3)  # RGBA tuple for text
         border_color = self.colormap(0.5)  # RGBA tuple for borders
-        border_group_color = self.colormap(0.1)  # RGBA tuple for borders
+        border_group_color = self.colormap(0.1)  # RGBA tuple for group borders
         input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
-        untoggled_bg_color = self.colormap(0.0)  # Light background for untoggled
-        untoggled_text_color = self.colormap(0.3)  # Dark text for untoggled
-        toggled_bg_color = self.colormap(0.3)  # Dark background for toggled
-        toggled_text_color = self.colormap(0.0)  # Light text for toggled
+        untoggled_bg_color = self.colormap(0.0)  # Background for untoggled elements
+        untoggled_text_color = self.colormap(0.3)  # Text for untoggled elements
+        toggled_bg_color = self.colormap(0.3)  # Background for toggled elements
+        toggled_text_color = self.colormap(0.0)  # Text for toggled elements
 
+        # Convert RGBA to RGB
         r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
         r_text, g_text, b_text = rgba_to_rgb(text_color)
         r_border, g_border, b_border = rgba_to_rgb(border_color)
@@ -512,133 +513,36 @@ class FractalApp(QMainWindow):
         r_toggled_bg, g_toggled_bg, b_toggled_bg = rgba_to_rgb(toggled_bg_color)
         r_toggled_text, g_toggled_text, b_toggled_text = rgba_to_rgb(toggled_text_color)
 
+        # Selector rectangle
         selector_color_rgb = rgba_to_rgb(selector_color)
         self.selector_color = QColor(*selector_color_rgb)
 
-        # Save the toggled and untoggled styles
-        self.toggled_style = f"background-color: rgb({r_toggled_bg}, {g_toggled_bg}, {b_toggled_bg}); color: rgb({r_toggled_text}, {g_toggled_text}, {b_toggled_text}); font-weight: bold;"
-        self.untoggled_style = f"background-color: rgb({r_untoggled_bg}, {g_untoggled_bg}, {b_untoggled_bg}); color: rgb({r_untoggled_text}, {g_untoggled_text}, {b_untoggled_text}); font-weight: normal;"
+        # Save toggled and untoggled styles
+        self.toggled_style = get_toggled_style().format(
+            r_toggled_bg=r_toggled_bg, g_toggled_bg=g_toggled_bg, b_toggled_bg=b_toggled_bg,
+            r_toggled_text=r_toggled_text, g_toggled_text=g_toggled_text, b_toggled_text=b_toggled_text,
+        )
+        self.untoggled_style = get_untoggled_style().format(
+            r_untoggled_bg=r_untoggled_bg, g_untoggled_bg=g_untoggled_bg, b_untoggled_bg=b_untoggled_bg,
+            r_untoggled_text=r_untoggled_text, g_untoggled_text=g_untoggled_text, b_untoggled_text=b_untoggled_text,
+        )
 
-        # Update stylesheet for the entire app
-        self.setStyleSheet(f"""
-            QMainWindow {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-            }}
-            QLabel, QPushButton, QComboBox {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QPushButton:hover {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-                color: rgb({r_bg}, {g_bg}, {b_bg});
-            }}
-            QComboBox {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QComboBox QAbstractItemView {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QScrollBar {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-            }}
-            QScrollBar::handle {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-            }}
-            QScrollBar::add-line, QScrollBar::sub-line {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-            }}
-            QGraphicsView {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QLineEdit {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QToolTip {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-                border: 1px solid rgb({r_border_group}, {g_border_group}, {b_border_group});
-            }}
-            QGroupBox {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border_group}, {g_border_group}, {b_border_group});
-                border-radius: 5px;
-                font-weight: bold;
-                margin-top: 10px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: top right;
-                padding: 0 5px;
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-            }}
-            QFileDialog, QDialog {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QFileDialog QLineEdit, QDialog QLineEdit {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QFileDialog QPushButton, QDialog QPushButton {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QFileDialog QPushButton:hover, QDialog QPushButton:hover {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-                color: rgb({r_bg}, {g_bg}, {b_bg});
-            }}
-            QFileDialog QScrollBar, QDialog QScrollBar {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-            }}
-            QFileDialog QScrollBar::handle, QDialog QScrollBar::handle {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-            }}
-            QFileDialog QTreeView, QDialog QTreeView {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-                border: none;
-            }}
-            QFileDialog QTreeView::item, QDialog QTreeView::item {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-            }}
-            QFileDialog QListView, QDialog QListView {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-            }}
-            QFileDialog QHeaderView::section, QDialog QHeaderView::section {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-                color: rgb({r_text}, {g_text}, {b_text});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QMessageBox {{
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                color: rgb({r_text}, {g_text}, {b_text});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QMessageBox QPushButton {{
-                color: rgb({r_text}, {g_text}, {b_text});
-                background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
-            }}
-            QMessageBox QPushButton:hover {{
-                background-color: rgb({r_border}, {g_border}, {b_border});
-                color: rgb({r_bg}, {g_bg}, {b_bg});
-            }}
-        """)
+        # Variables for the stylesheet
+        variables = {
+            "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
+            "r_text": r_text, "g_text": g_text, "b_text": b_text,
+            "r_border": r_border, "g_border": g_border, "b_border": b_border,
+            "r_border_group": r_border_group, "g_border_group": g_border_group, "b_border_group": b_border_group,
+            "r_input_bg": r_input_bg, "g_input_bg": g_input_bg, "b_input_bg": b_input_bg,
+            "r_untoggled_bg": r_untoggled_bg, "g_untoggled_bg": g_untoggled_bg, "b_untoggled_bg": b_untoggled_bg,
+            "r_untoggled_text": r_untoggled_text, "g_untoggled_text": g_untoggled_text, "b_untoggled_text": b_untoggled_text,
+            "r_toggled_bg": r_toggled_bg, "g_toggled_bg": g_toggled_bg, "b_toggled_bg": b_toggled_bg,
+            "r_toggled_text": r_toggled_text, "g_toggled_text": g_toggled_text, "b_toggled_text": b_toggled_text,
+        }
+
+        # Apply the stylesheet
+        stylesheet = get_stylesheet().format(**variables)
+        self.setStyleSheet(stylesheet)
 
         # Update row and column labels to reflect their toggled state
         for row in range(6):
