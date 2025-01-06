@@ -125,28 +125,45 @@ class FractalApp(QMainWindow):
         """Set up the control buttons and input fields with compact frames."""
         controls_layout = QVBoxLayout()
 
-        # File Controls
-        file_group = QGroupBox("File")
-        file_group.setMaximumWidth(self.CONTROLLS_WIDTH)
-        file_layout = QVBoxLayout()
+        controls_layout.addWidget(self.create_settings_group(), alignment=Qt.AlignTop)
+        controls_layout.addWidget(self.create_movement_group(), alignment=Qt.AlignTop)
+        controls_layout.addWidget(self.create_translation_group(), alignment=Qt.AlignTop)
+        controls_layout.addWidget(self.create_rotation_group(), alignment=Qt.AlignTop)
+        controls_layout.addWidget(self.create_parameters_group(), alignment=Qt.AlignTop)
+
+        controls_layout.addStretch()
+        return controls_layout
+
+    def create_settings_group(self):
+        """Create the Settings group combining file, history, and color controls."""
+        settings_group = QGroupBox("Settings")
+        settings_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+        settings_layout = QVBoxLayout()
+
+        # File controls: Load and Save
+        file_layout = QHBoxLayout()
         file_layout.addWidget(self.create_button("Load", "Load settings from a file", self.load_settings))
         file_layout.addWidget(self.create_button("Save", "Save current settings to a file", self.save_settings))
-        file_group.setLayout(file_layout)
-        controls_layout.addWidget(file_group, alignment=Qt.AlignTop)
+        settings_layout.addLayout(file_layout)
 
-        # History Controls
-        history_group = QGroupBox("History")
-        history_group.setMaximumWidth(self.CONTROLLS_WIDTH)
-        history_layout = QVBoxLayout()
-        history_layout.addWidget(self.create_button("Reset", "Shortcut: Home", self.reset_view))
-        history_layout.addWidget(self.create_button("Undo", "Go Back (Shortcut: Backspace)", self.go_back))
-        history_group.setLayout(history_layout)
-        controls_layout.addWidget(history_group, alignment=Qt.AlignTop)
+        # History controls: Undo and Reset
+        history_layout = QHBoxLayout()
+        history_layout.addWidget(self.create_button("Undo", "Undo last action (Shortcut: Backspace)", self.go_back))
+        history_layout.addWidget(self.create_button("Reset", "Reset view (Shortcut: Home)", self.reset_view))
+        settings_layout.addLayout(history_layout)
 
-        # Movement Controls
+        # Color controls
+        settings_layout.addWidget(self.setup_colormap_dropdown())
+
+        settings_group.setLayout(settings_layout)
+        return settings_group
+
+    def create_movement_group(self):
+        """Create the Movement group with zoom, move, and rotate controls."""
         movement_group = QGroupBox("Movement")
         movement_group.setMaximumWidth(self.CONTROLLS_WIDTH)
         movement_layout = QGridLayout()
+
         movement_layout.addWidget(self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out), 0, 0)
         movement_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
         movement_layout.addWidget(self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in), 0, 2)
@@ -155,21 +172,16 @@ class FractalApp(QMainWindow):
         movement_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
         movement_layout.addWidget(self.create_button("↺", "Rotate CCW (Shortcut: R)", lambda: self.rotate("CCW")), 2, 0)
         movement_layout.addWidget(self.create_button("↻", "Rotate CW (Shortcut: F)", lambda: self.rotate("CW")), 2, 2)
+
         movement_group.setLayout(movement_layout)
-        controls_layout.addWidget(movement_group, alignment=Qt.AlignTop)
+        return movement_group
 
-        # Color Controls
-        color_group = QGroupBox("Color")
-        color_group.setMaximumWidth(self.CONTROLLS_WIDTH)
-        color_layout = QVBoxLayout()
-        color_layout.addWidget(self.setup_colormap_dropdown())
-        color_group.setLayout(color_layout)
-        controls_layout.addWidget(color_group, alignment=Qt.AlignTop)
-
-        # Parameters
+    def create_parameters_group(self):
+        """Create the Parameters group with vector controls and randomize/perturb options."""
         parameters_group = QGroupBox("Parameters")
         parameters_group.setToolTip("Change parameters or fix column and row headers by clicking them.")
         parameters_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+
         parameters_layout = QVBoxLayout()
         parameters_layout.addLayout(self.setup_uov_inputs())
 
@@ -178,19 +190,18 @@ class FractalApp(QMainWindow):
         randomize_perturb_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
         randomize_perturb_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
         parameters_layout.addLayout(randomize_perturb_layout)
+
         parameters_group.setLayout(parameters_layout)
-        controls_layout.addWidget(parameters_group, alignment=Qt.AlignTop)
+        return parameters_group
 
-        # Translation Section
-        translation_controls = self.setup_translation_controls()
-        controls_layout.addWidget(translation_controls, alignment=Qt.AlignTop)
-
-        # Add Rotation Controls
-        rotation_controls = self.setup_rotation_controls()
-        controls_layout.addWidget(rotation_controls, alignment=Qt.AlignTop)
-
-        controls_layout.addStretch()
-        return controls_layout
+    def setup_colormap_dropdown(self):
+        """Set up a dropdown menu for selecting colormaps."""
+        colormap_dropdown = QComboBox()
+        colormap_dropdown.setToolTip("Select a colormap for the fractal")
+        colormap_dropdown.addItems(sorted(colormaps.keys()))  # Add all available colormaps
+        colormap_dropdown.setCurrentText("inferno")  # Default colormap
+        colormap_dropdown.currentTextChanged.connect(self.update_colormap)
+        return colormap_dropdown
 
     def setup_uov_inputs(self):
         """Create compact input fields for u, o, v vectors with toggleable labels."""
@@ -232,6 +243,120 @@ class FractalApp(QMainWindow):
 
         return uov_layout
 
+    def setup_zoom_controls(self):
+        """Set up zoom in and zoom out controls."""
+        zoom_layout = QHBoxLayout()
+        zoom_out_btn = self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out)
+        zoom_in_btn = self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in)
+        zoom_layout.addWidget(zoom_out_btn)
+        zoom_layout.addWidget(zoom_in_btn)
+        return zoom_layout
+
+    def setup_move_controls(self):
+        """Set up move controls in an arrow key layout."""
+        move_layout = QGridLayout()
+        move_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
+        move_layout.addWidget(self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")), 1, 0)
+        move_layout.addWidget(self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")), 1, 1)
+        move_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
+        return move_layout
+
+    def setup_rotate_controls(self):
+        """Set up rotate clockwise and counterclockwise controls."""
+        rotate_layout = QHBoxLayout()
+        rotate_ccw_btn = self.create_button("↺", "Rotate Counterclockwise (Shortcut: R)", lambda: self.rotate("CCW"))
+        rotate_cw_btn = self.create_button("↻", "Rotate Clockwise (Shortcut: F)", lambda: self.rotate("CW"))
+        rotate_layout.addWidget(rotate_ccw_btn)
+        rotate_layout.addWidget(rotate_cw_btn)
+        return rotate_layout
+
+    def create_translation_group(self):
+        """Create a 6x3 translation control table with column headers between the up and down arrows."""
+        translation_group = QGroupBox("Translation")
+        translation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+
+        translation_layout = QVBoxLayout()
+        table_layout = QGridLayout()
+
+        # Column headers
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            header_label = QLabel(header)
+            header_label.setAlignment(Qt.AlignCenter)
+            table_layout.addWidget(header_label, 1, col)  # Place headers in the second row (index 1)
+
+        # Up arrow buttons
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            up_button = QPushButton("↑")
+            up_button.setToolTip(f"Translate positively along {header}")
+            up_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, 1))
+            table_layout.addWidget(up_button, 0, col)  # Place up arrows in the first row (index 0)
+
+        # Down arrow buttons
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            down_button = QPushButton("↓")
+            down_button.setToolTip(f"Translate negatively along {header}")
+            down_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, -1))
+            table_layout.addWidget(down_button, 2, col)  # Place down arrows in the third row (index 2)
+
+        # Add the table to the translation layout
+        translation_layout.addLayout(table_layout)
+
+        # Add displacement field
+        displacement_layout = QHBoxLayout()
+        displacement_label = QLabel("Displacement:")
+        self.displacement = QLineEdit("0.1")
+        self.displacement.setFixedWidth(self.INPUT_WIDTH)
+        self.displacement.setToolTip("Set the displacement magnitude for translation")
+        displacement_layout.addWidget(displacement_label)
+        displacement_layout.addWidget(self.displacement)
+        translation_layout.addLayout(displacement_layout)
+
+        translation_group.setLayout(translation_layout)
+        return translation_group
+
+    def create_rotation_group(self):
+        """Create a full rotation control table with bidirectional rotation buttons."""
+        rotation_group = QGroupBox("Rotation")
+        rotation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+
+        rotation_layout = QVBoxLayout()
+        table_layout = QGridLayout()
+
+        headers = self.VECTOR_COMPONENT_NAMES
+
+        # Add headers for rows and columns
+        for col, header in enumerate(headers):
+            header_label = QLabel(header)
+            header_label.setAlignment(Qt.AlignCenter)
+            table_layout.addWidget(header_label, 0, col + 1)  # Top headers
+            table_layout.addWidget(QLabel(header), col + 1, 0)  # Left headers
+
+        # Add bidirectional rotation buttons
+        for row in range(len(headers)):
+            for col in range(len(headers)):
+                if row != col:  # No self-rotation
+                    rotation_button = QPushButton("↻" if col > row else "↺")
+                    tooltip = f"Rotate along the plane of {headers[col]} and {headers[row]}"
+                    rotation_button.setToolTip(tooltip)
+                    rotation_button.clicked.connect(lambda _, a=row, b=col: self.rotate_plane(a, b))
+                    table_layout.addWidget(rotation_button, row + 1, col + 1)
+
+        # Add rotation amount field
+        rotation_amount_layout = QHBoxLayout()
+        rotation_amount_label = QLabel("Rotation:")
+        self.rotation_amount = QLineEdit("0.1")
+        self.rotation_amount.setFixedWidth(self.INPUT_WIDTH)
+        self.rotation_amount.setToolTip("Set the rotation angle in radians")
+        rotation_amount_layout.addWidget(rotation_amount_label)
+        rotation_amount_layout.addWidget(self.rotation_amount)
+        rotation_layout.addLayout(rotation_amount_layout)
+
+        # Add the table layout to the rotation layout
+        rotation_layout.addLayout(table_layout)
+
+        rotation_group.setLayout(rotation_layout)
+        return rotation_group
+
     def update_uov(self):
         """Update u, o, v vectors from input fields and re-render."""
         try:
@@ -257,15 +382,6 @@ class FractalApp(QMainWindow):
                 field_list[i].setText(str(value[i]))
                 field_list[i].setCursorPosition(0)
 
-    def setup_colormap_dropdown(self):
-        """Set up a dropdown menu for selecting colormaps."""
-        colormap_dropdown = QComboBox()
-        colormap_dropdown.setToolTip("Select a colormap for the fractal")
-        colormap_dropdown.addItems(sorted(colormaps.keys()))  # Add all available colormaps
-        colormap_dropdown.setCurrentText("inferno")  # Default colormap
-        colormap_dropdown.currentTextChanged.connect(self.update_colormap)
-        return colormap_dropdown
-
     def update_colormap(self, colormap_name, render = True):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
@@ -278,7 +394,8 @@ class FractalApp(QMainWindow):
         selector_color = self.colormap(0.5)
         background_color = self.colormap(0)  # RGBA tuple for background
         text_color = self.colormap(0.3)  # RGBA tuple for text
-        border_color = self.colormap(0.6)  # RGBA tuple for borders
+        border_color = self.colormap(0.5)  # RGBA tuple for borders
+        border_group_color = self.colormap(0.1)  # RGBA tuple for borders
         input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
         untoggled_bg_color = self.colormap(0.1)  # Light background for untoggled
         untoggled_text_color = self.colormap(0.3)  # Dark text for untoggled
@@ -288,6 +405,7 @@ class FractalApp(QMainWindow):
         r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
         r_text, g_text, b_text = rgba_to_rgb(text_color)
         r_border, g_border, b_border = rgba_to_rgb(border_color)
+        r_border_group, g_border_group, b_border_group = rgba_to_rgb(border_group_color)
         r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(input_bg_color)
         r_untoggled_bg, g_untoggled_bg, b_untoggled_bg = rgba_to_rgb(untoggled_bg_color)
         r_untoggled_text, g_untoggled_text, b_untoggled_text = rgba_to_rgb(untoggled_text_color)
@@ -347,7 +465,7 @@ class FractalApp(QMainWindow):
             QGroupBox {{
                 color: rgb({r_text}, {g_text}, {b_text});
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
-                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+                border: 1px solid rgb({r_border_group}, {g_border_group}, {b_border_group});
                 border-radius: 5px;
                 font-weight: bold;
                 margin-top: 10px;
@@ -374,120 +492,6 @@ class FractalApp(QMainWindow):
     def get_toggle_style(self, toggled):
         """Return the stylesheet for a toggled or untoggled label."""
         return self.toggled_style if toggled else self.untoggled_style
-
-    def setup_zoom_controls(self):
-        """Set up zoom in and zoom out controls."""
-        zoom_layout = QHBoxLayout()
-        zoom_out_btn = self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out)
-        zoom_in_btn = self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in)
-        zoom_layout.addWidget(zoom_out_btn)
-        zoom_layout.addWidget(zoom_in_btn)
-        return zoom_layout
-
-    def setup_move_controls(self):
-        """Set up move controls in an arrow key layout."""
-        move_layout = QGridLayout()
-        move_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
-        move_layout.addWidget(self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")), 1, 0)
-        move_layout.addWidget(self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")), 1, 1)
-        move_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
-        return move_layout
-
-    def setup_rotate_controls(self):
-        """Set up rotate clockwise and counterclockwise controls."""
-        rotate_layout = QHBoxLayout()
-        rotate_ccw_btn = self.create_button("↺", "Rotate Counterclockwise (Shortcut: R)", lambda: self.rotate("CCW"))
-        rotate_cw_btn = self.create_button("↻", "Rotate Clockwise (Shortcut: F)", lambda: self.rotate("CW"))
-        rotate_layout.addWidget(rotate_ccw_btn)
-        rotate_layout.addWidget(rotate_cw_btn)
-        return rotate_layout
-
-    def setup_translation_controls(self):
-        """Create a 6x3 translation control table with column headers between the up and down arrows."""
-        translation_group = QGroupBox("Translation")
-        translation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
-
-        translation_layout = QVBoxLayout()
-        table_layout = QGridLayout()
-
-        # Column headers
-        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
-            header_label = QLabel(header)
-            header_label.setAlignment(Qt.AlignCenter)
-            table_layout.addWidget(header_label, 1, col)  # Place headers in the second row (index 1)
-
-        # Up arrow buttons
-        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
-            up_button = QPushButton("↑")
-            up_button.setToolTip(f"Translate positively along {header}")
-            up_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, 1))
-            table_layout.addWidget(up_button, 0, col)  # Place up arrows in the first row (index 0)
-
-        # Down arrow buttons
-        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
-            down_button = QPushButton("↓")
-            down_button.setToolTip(f"Translate negatively along {header}")
-            down_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, -1))
-            table_layout.addWidget(down_button, 2, col)  # Place down arrows in the third row (index 2)
-
-        # Add the table to the translation layout
-        translation_layout.addLayout(table_layout)
-
-        # Add displacement field
-        displacement_layout = QHBoxLayout()
-        displacement_label = QLabel("Displacement:")
-        self.displacement = QLineEdit("0.1")
-        self.displacement.setFixedWidth(self.INPUT_WIDTH)
-        self.displacement.setToolTip("Set the displacement magnitude for translation")
-        displacement_layout.addWidget(displacement_label)
-        displacement_layout.addWidget(self.displacement)
-        translation_layout.addLayout(displacement_layout)
-
-        translation_group.setLayout(translation_layout)
-        return translation_group
-
-    def setup_rotation_controls(self):
-        """Create a full rotation control table with bidirectional rotation buttons."""
-        rotation_group = QGroupBox("Rotation")
-        rotation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
-
-        rotation_layout = QVBoxLayout()
-        table_layout = QGridLayout()
-
-        headers = self.VECTOR_COMPONENT_NAMES
-
-        # Add headers for rows and columns
-        for col, header in enumerate(headers):
-            header_label = QLabel(header)
-            header_label.setAlignment(Qt.AlignCenter)
-            table_layout.addWidget(header_label, 0, col + 1)  # Top headers
-            table_layout.addWidget(QLabel(header), col + 1, 0)  # Left headers
-
-        # Add bidirectional rotation buttons
-        for row in range(len(headers)):
-            for col in range(len(headers)):
-                if row != col:  # No self-rotation
-                    rotation_button = QPushButton("↻" if col > row else "↺")
-                    tooltip = f"Rotate along the plane of {headers[col]} and {headers[row]}"
-                    rotation_button.setToolTip(tooltip)
-                    rotation_button.clicked.connect(lambda _, a=row, b=col: self.rotate_plane(a, b))
-                    table_layout.addWidget(rotation_button, row + 1, col + 1)
-
-        # Add rotation amount field
-        rotation_amount_layout = QHBoxLayout()
-        rotation_amount_label = QLabel("Rotation:")
-        self.rotation_amount = QLineEdit("0.1")
-        self.rotation_amount.setFixedWidth(self.INPUT_WIDTH)
-        self.rotation_amount.setToolTip("Set the rotation angle in radians")
-        rotation_amount_layout.addWidget(rotation_amount_label)
-        rotation_amount_layout.addWidget(self.rotation_amount)
-        rotation_layout.addLayout(rotation_amount_layout)
-
-        # Add the table layout to the rotation layout
-        rotation_layout.addLayout(table_layout)
-
-        rotation_group.setLayout(rotation_layout)
-        return rotation_group
 
     def create_button(self, label, tooltip, callback):
         """Create a reusable button."""
