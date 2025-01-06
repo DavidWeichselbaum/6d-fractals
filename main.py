@@ -195,13 +195,29 @@ class FractalApp(QMainWindow):
         return parameters_group
 
     def setup_colormap_dropdown(self):
-        """Set up a dropdown menu for selecting colormaps."""
+        """Set up a dropdown menu for selecting colormaps with a label."""
+        colormap_layout = QHBoxLayout()
+
+        # Create a borderless label for the colormap
+        colormap_label = QLabel("Colors:")
+        colormap_label.setStyleSheet("border: none;")
+        colormap_label.setAlignment(Qt.AlignRight)
+
+        # Create the dropdown menu for colormaps
         colormap_dropdown = QComboBox()
         colormap_dropdown.setToolTip("Select a colormap for the fractal")
         colormap_dropdown.addItems(sorted(colormaps.keys()))  # Add all available colormaps
         colormap_dropdown.setCurrentText("inferno")  # Default colormap
         colormap_dropdown.currentTextChanged.connect(self.update_colormap)
-        return colormap_dropdown
+
+        # Add the label and dropdown to the layout
+        colormap_layout.addWidget(colormap_label)
+        colormap_layout.addWidget(colormap_dropdown)
+
+        # Create a container widget to return
+        colormap_widget = QWidget()
+        colormap_widget.setLayout(colormap_layout)
+        return colormap_widget
 
     def setup_uov_inputs(self):
         """Create compact input fields for u, o, v vectors with toggleable labels."""
@@ -278,18 +294,19 @@ class FractalApp(QMainWindow):
         translation_layout = QVBoxLayout()
         table_layout = QGridLayout()
 
-        # Column headers
-        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
-            header_label = QLabel(header)
-            header_label.setAlignment(Qt.AlignCenter)
-            table_layout.addWidget(header_label, 1, col)  # Place headers in the second row (index 1)
-
         # Up arrow buttons
         for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
             up_button = QPushButton("↑")
             up_button.setToolTip(f"Translate positively along {header}")
             up_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, 1))
             table_layout.addWidget(up_button, 0, col)  # Place up arrows in the first row (index 0)
+
+        # Column headers
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            header_label = QLabel(header)
+            header_label.setStyleSheet("border: none;")
+            header_label.setAlignment(Qt.AlignCenter)
+            table_layout.addWidget(header_label, 1, col)  # Place headers in the second row (index 1)
 
         # Down arrow buttons
         for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
@@ -303,7 +320,9 @@ class FractalApp(QMainWindow):
 
         # Add displacement field
         displacement_layout = QHBoxLayout()
-        displacement_label = QLabel("Displacement:")
+        displacement_label = QLabel("Distance:")
+        displacement_label.setStyleSheet("border: none;")
+        displacement_label.setAlignment(Qt.AlignRight)
         self.displacement = QLineEdit("0.1")
         self.displacement.setFixedWidth(self.INPUT_WIDTH)
         self.displacement.setToolTip("Set the displacement magnitude for translation")
@@ -327,9 +346,14 @@ class FractalApp(QMainWindow):
         # Add headers for rows and columns
         for col, header in enumerate(headers):
             header_label = QLabel(header)
+            header_label.setStyleSheet("border: none;")
             header_label.setAlignment(Qt.AlignCenter)
             table_layout.addWidget(header_label, 0, col + 1)  # Top headers
-            table_layout.addWidget(QLabel(header), col + 1, 0)  # Left headers
+
+            header_label = QLabel(header)
+            header_label.setStyleSheet("border: none;")
+            header_label.setAlignment(Qt.AlignCenter)
+            table_layout.addWidget(header_label, col + 1, 0)  # Left headers
 
         # Add bidirectional rotation buttons
         for row in range(len(headers)):
@@ -341,20 +365,22 @@ class FractalApp(QMainWindow):
                     rotation_button.clicked.connect(lambda _, a=row, b=col: self.rotate_plane(a, b))
                     table_layout.addWidget(rotation_button, row + 1, col + 1)
 
+        # Add the table layout to the rotation layout
+        rotation_layout.addLayout(table_layout)
+
         # Add rotation amount field
         rotation_amount_layout = QHBoxLayout()
-        rotation_amount_label = QLabel("Rotation:")
+        rotation_amount_label = QLabel("Angle:")
+        rotation_amount_label.setStyleSheet("border: none;")
+        rotation_amount_label.setAlignment(Qt.AlignRight)
         self.rotation_amount = QLineEdit("0.1")
         self.rotation_amount.setFixedWidth(self.INPUT_WIDTH)
         self.rotation_amount.setToolTip("Set the rotation angle in radians")
         rotation_amount_layout.addWidget(rotation_amount_label)
         rotation_amount_layout.addWidget(self.rotation_amount)
         rotation_layout.addLayout(rotation_amount_layout)
-
-        # Add the table layout to the rotation layout
-        rotation_layout.addLayout(table_layout)
-
         rotation_group.setLayout(rotation_layout)
+
         return rotation_group
 
     def update_uov(self):
@@ -392,15 +418,15 @@ class FractalApp(QMainWindow):
     def update_interface_color(self):
         """Update the interface colors to match the colormap."""
         selector_color = self.colormap(0.5)
-        background_color = self.colormap(0)  # RGBA tuple for background
+        background_color = self.colormap(0.0)  # RGBA tuple for background
         text_color = self.colormap(0.3)  # RGBA tuple for text
         border_color = self.colormap(0.5)  # RGBA tuple for borders
         border_group_color = self.colormap(0.1)  # RGBA tuple for borders
         input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
-        untoggled_bg_color = self.colormap(0.1)  # Light background for untoggled
+        untoggled_bg_color = self.colormap(0.0)  # Light background for untoggled
         untoggled_text_color = self.colormap(0.3)  # Dark text for untoggled
         toggled_bg_color = self.colormap(0.3)  # Dark background for toggled
-        toggled_text_color = self.colormap(0.1)  # Light text for toggled
+        toggled_text_color = self.colormap(0.0)  # Light text for toggled
 
         r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
         r_text, g_text, b_text = rgba_to_rgb(text_color)
