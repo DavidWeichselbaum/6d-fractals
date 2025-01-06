@@ -77,8 +77,10 @@ class FractalApp(QMainWindow):
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
 
+        self.initialized = False
         self.update_colormap("inferno")
         self.init_ui()
+        self.initialized = True
 
     def init_ui(self):
         self.setWindowTitle("6D Fractal Explorer")
@@ -161,11 +163,12 @@ class FractalApp(QMainWindow):
         return settings_group
 
     def create_movement_group(self):
-        """Create the Movement group with zoom, move, and rotate controls."""
+        """Create the Movement group with zoom, move, rotation, and additional parameters."""
         movement_group = QGroupBox("Movement")
         movement_group.setMaximumWidth(self.CONTROLLS_WIDTH)
         movement_layout = QGridLayout()
 
+        # Add zoom and movement controls
         movement_layout.addWidget(self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out), 0, 0)
         movement_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
         movement_layout.addWidget(self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in), 0, 2)
@@ -174,6 +177,50 @@ class FractalApp(QMainWindow):
         movement_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
         movement_layout.addWidget(self.create_button("↺", "Rotate CCW (Shortcut: R)", lambda: self.rotate("CCW")), 2, 0)
         movement_layout.addWidget(self.create_button("↻", "Rotate CW (Shortcut: F)", lambda: self.rotate("CW")), 2, 2)
+
+        # Add Center (Offset) fields
+        center_layout = QHBoxLayout()
+        center_label = QLabel("Center:")
+        center_label.setStyleSheet("border: none;")
+        center_label.setAlignment(Qt.AlignRight)
+        self.center_x_field = QLineEdit(str(self.settings.center[0]))
+        self.center_x_field.setFixedWidth(self.INPUT_WIDTH)
+        self.center_x_field.setToolTip("X offset of the fractal center")
+        self.center_x_field.returnPressed.connect(self.update_center)
+        self.center_y_field = QLineEdit(str(self.settings.center[1]))
+        self.center_y_field.setFixedWidth(self.INPUT_WIDTH)
+        self.center_y_field.setToolTip("Y offset of the fractal center")
+        self.center_y_field.returnPressed.connect(self.update_center)
+        center_layout.addWidget(center_label)
+        center_layout.addWidget(self.center_x_field)
+        center_layout.addWidget(self.center_y_field)
+        movement_layout.addLayout(center_layout, 3, 0, 1, 3)
+
+        # Add Scale field
+        scale_layout = QHBoxLayout()
+        scale_label = QLabel("Scale:")
+        scale_label.setStyleSheet("border: none;")
+        scale_label.setAlignment(Qt.AlignRight)
+        self.scale_field = QLineEdit(str(self.settings.scale))
+        self.scale_field.setFixedWidth(self.INPUT_WIDTH)
+        self.scale_field.setToolTip("Scale of the fractal (zoom level)")
+        self.scale_field.returnPressed.connect(self.update_scale)
+        scale_layout.addWidget(scale_label)
+        scale_layout.addWidget(self.scale_field)
+        movement_layout.addLayout(scale_layout, 4, 0, 1, 3)
+
+        # Add Rotation field
+        rotation_layout = QHBoxLayout()
+        rotation_label = QLabel("Rotation:")
+        rotation_label.setStyleSheet("border: none;")
+        rotation_label.setAlignment(Qt.AlignRight)
+        self.rotation_field = QLineEdit(str(self.settings.rotation))
+        self.rotation_field.setFixedWidth(self.INPUT_WIDTH)
+        self.rotation_field.setToolTip("Rotation angle of the fractal (in radians)")
+        self.rotation_field.returnPressed.connect(self.update_rotation)
+        rotation_layout.addWidget(rotation_label)
+        rotation_layout.addWidget(self.rotation_field)
+        movement_layout.addLayout(rotation_layout, 5, 0, 1, 3)
 
         movement_group.setLayout(movement_layout)
         return movement_group
@@ -410,6 +457,19 @@ class FractalApp(QMainWindow):
                 field_list[i].setText(str(value[i]))
                 field_list[i].setCursorPosition(0)
 
+    def update_movement_inputs(self):
+        self.center_x_field.setText(str(self.settings.center[0]))
+        self.center_x_field.setCursorPosition(0)
+
+        self.center_y_field.setText(str(self.settings.center[1]))
+        self.center_y_field.setCursorPosition(0)
+
+        self.scale_field.setText(str(self.settings.scale))
+        self.scale_field.setCursorPosition(0)
+
+        self.rotation_field.setText(str(self.settings.rotation))
+        self.rotation_field.setCursorPosition(0)
+
     def update_colormap(self, colormap_name, render = True):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
@@ -564,6 +624,40 @@ class FractalApp(QMainWindow):
             if label:
                 label.setStyleSheet(self.toggled_style if self.col_toggled[col] else self.untoggled_style)
 
+    def update_center(self):
+        """Update the center (offset) of the fractal."""
+        try:
+            x = float(self.center_x_field.text())
+            y = float(self.center_y_field.text())
+            self.settings.center = (x, y)
+            logging.info(f"Updated center to: {self.settings.center}")
+            self.render_fractal()
+        except ValueError:
+            logging.warning("Invalid input for center. Please enter numeric values.")
+
+    def update_scale(self):
+        """Update the scale (zoom level) of the fractal."""
+        try:
+            scale = float(self.scale_field.text())
+            if scale > 0:
+                self.settings.scale = scale
+                logging.info(f"Updated scale to: {self.settings.scale}")
+                self.render_fractal()
+            else:
+                logging.warning("Scale must be positive.")
+        except ValueError:
+            logging.warning("Invalid input for scale. Please enter a numeric value.")
+
+    def update_rotation(self):
+        """Update the rotation angle of the fractal."""
+        try:
+            rotation = float(self.rotation_field.text())
+            self.settings.rotation = rotation
+            logging.info(f"Updated rotation to: {self.settings.rotation} radians")
+            self.render_fractal()
+        except ValueError:
+            logging.warning("Invalid input for rotation. Please enter a numeric value.")
+
     def get_toggle_style(self, toggled):
         """Return the stylesheet for a toggled or untoggled label."""
         return self.toggled_style if toggled else self.untoggled_style
@@ -586,6 +680,10 @@ class FractalApp(QMainWindow):
             self.worker = FractalWorker(self.settings)
             self.worker.finished.connect(self.display_fractal)
             self.worker.start()
+
+        if self.initialized:
+            self.update_uov_inputs()
+            self.update_movement_inputs()
 
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
@@ -648,7 +746,6 @@ class FractalApp(QMainWindow):
                             self.settings.o[row] = new_values[row]
                         elif col == 2:  # v
                             self.settings.v[row] = new_values[row]
-        self.update_uov_inputs()
         self.render_fractal()
 
     def perturb_settings(self):
@@ -664,7 +761,6 @@ class FractalApp(QMainWindow):
                             self.settings.o[row] += perturbation[row]
                         elif col == 2:  # v
                             self.settings.v[row] += perturbation[row]
-        self.update_uov_inputs()
         self.render_fractal()
 
     def translate_plane(self, dimension, direction):
@@ -695,7 +791,6 @@ class FractalApp(QMainWindow):
         self.settings.v += translation_vector
 
         # Update the UI and re-render the fractal
-        self.update_uov_inputs()
         self.render_fractal()
         logging.warning(f"Translated {dimension} by {displacement} in the {direction} direction.")
 
@@ -729,7 +824,6 @@ class FractalApp(QMainWindow):
         self.settings.v = rotation_matrix @ self.settings.v
 
         # Update the UI and re-render
-        self.update_uov_inputs()
         self.render_fractal()
         logging.info(f"Rotated around axis ({self.VECTOR_COMPONENT_NAMES[axis1_index]}, {self.VECTOR_COMPONENT_NAMES[axis2_index]}) by {angle_radians:.4f} radians.")
 
@@ -821,7 +915,6 @@ class FractalApp(QMainWindow):
                 settings_dict = yaml.safe_load(file)
                 self.settings = self.dict_to_settings(settings_dict)
             logging.info(f"Settings loaded from {file_path}")
-            self.update_uov_inputs()
             self.render_fractal()
 
     @staticmethod
