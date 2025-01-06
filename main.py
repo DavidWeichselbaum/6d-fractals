@@ -447,32 +447,31 @@ class FractalApp(QMainWindow):
         return translation_group
 
     def setup_rotation_controls(self):
-        """Create a triangular rotation control table with component combinations and a rotation amount field."""
+        """Create a full rotation control table with bidirectional rotation buttons."""
         rotation_group = QGroupBox("Rotation")
         rotation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
 
         rotation_layout = QVBoxLayout()
         table_layout = QGridLayout()
 
-        # Add headers for the vector components
         headers = self.VECTOR_COMPONENT_NAMES
+
+        # Add headers for rows and columns
         for col, header in enumerate(headers):
             header_label = QLabel(header)
             header_label.setAlignment(Qt.AlignCenter)
-            table_layout.addWidget(header_label, 0, col + 1)  # Offset by one column for triangular layout
-            table_layout.addWidget(QLabel(header), col + 1, 0)  # Row headers
+            table_layout.addWidget(header_label, 0, col + 1)  # Top headers
+            table_layout.addWidget(QLabel(header), col + 1, 0)  # Left headers
 
-        # Add rotation buttons in a triangular arrangement
+        # Add bidirectional rotation buttons
         for row in range(len(headers)):
-            for col in range(row + 1, len(headers)):
-                # rotate_button = QPushButton(f"{headers[row]} ↔ {headers[col]}")
-                rotate_button = QPushButton(f"{headers[row]} ↔ {headers[col]}")
-                rotate_button.setToolTip(f"Rotate around axis defined by {headers[row]} and {headers[col]}")
-                rotate_button.clicked.connect(lambda _, a=row, b=col: self.rotate_plane(a, b))
-                table_layout.addWidget(rotate_button, row + 1, col + 1)
-
-        # Add the table to the layout
-        rotation_layout.addLayout(table_layout)
+            for col in range(len(headers)):
+                if row != col:  # No self-rotation
+                    rotation_button = QPushButton("↻" if col > row else "↺")
+                    tooltip = f"Rotate along the plane of {headers[col]} and {headers[row]}"
+                    rotation_button.setToolTip(tooltip)
+                    rotation_button.clicked.connect(lambda _, a=row, b=col: self.rotate_plane(a, b))
+                    table_layout.addWidget(rotation_button, row + 1, col + 1)
 
         # Add rotation amount field
         rotation_amount_layout = QHBoxLayout()
@@ -483,6 +482,9 @@ class FractalApp(QMainWindow):
         rotation_amount_layout.addWidget(rotation_amount_label)
         rotation_amount_layout.addWidget(self.rotation_amount)
         rotation_layout.addLayout(rotation_amount_layout)
+
+        # Add the table layout to the rotation layout
+        rotation_layout.addLayout(table_layout)
 
         rotation_group.setLayout(rotation_layout)
         return rotation_group
@@ -650,7 +652,7 @@ class FractalApp(QMainWindow):
         # Update the UI and re-render
         self.update_uov_inputs()
         self.render_fractal()
-        logging.info(f"Rotated around axis ({self.VECTOR_COMPONENT_NAMES[axis1_index]}, {self.VECTOR_COMPONENT_NAMES[axis2_index]}) by {angle_radians} radians.")
+        logging.info(f"Rotated around axis ({self.VECTOR_COMPONENT_NAMES[axis1_index]}, {self.VECTOR_COMPONENT_NAMES[axis2_index]}) by {angle_radians:.4f} radians.")
 
     def move(self, direction):
         logging.info(f"Moving {direction}...")
