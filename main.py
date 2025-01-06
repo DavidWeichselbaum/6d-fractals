@@ -438,7 +438,6 @@ class FractalApp(QMainWindow):
         r_toggled_bg, g_toggled_bg, b_toggled_bg = rgba_to_rgb(toggled_bg_color)
         r_toggled_text, g_toggled_text, b_toggled_text = rgba_to_rgb(toggled_text_color)
 
-
         selector_color_rgb = rgba_to_rgb(selector_color)
         self.selector_color = QColor(*selector_color_rgb)
 
@@ -488,6 +487,11 @@ class FractalApp(QMainWindow):
                 background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
+            QToolTip {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+                border: 1px solid rgb({r_border_group}, {g_border_group}, {b_border_group});
+            }}
             QGroupBox {{
                 color: rgb({r_text}, {g_text}, {b_text});
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
@@ -502,6 +506,49 @@ class FractalApp(QMainWindow):
                 padding: 0 5px;
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 color: rgb({r_text}, {g_text}, {b_text});
+            }}
+            QFileDialog {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QFileDialog QLineEdit {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QFileDialog QPushButton {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QFileDialog QPushButton:hover {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+                color: rgb({r_bg}, {g_bg}, {b_bg});
+            }}
+            QFileDialog QScrollBar {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+            }}
+            QFileDialog QScrollBar::handle {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+            }}
+            QFileDialog QTreeView {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+                border: none;
+            }}
+            QFileDialog QTreeView::item {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+            }}
+            QFileDialog QListView {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+            }}
+            QFileDialog QHeaderView::section {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+                color: rgb({r_text}, {g_text}, {b_text});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
         """)
 
