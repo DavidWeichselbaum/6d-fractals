@@ -581,48 +581,62 @@ class FractalApp(QMainWindow):
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 color: rgb({r_text}, {g_text}, {b_text});
             }}
-            QFileDialog {{
+            QFileDialog, QDialog {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 color: rgb({r_text}, {g_text}, {b_text});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
-            QFileDialog QLineEdit {{
+            QFileDialog QLineEdit, QDialog QLineEdit {{
                 color: rgb({r_text}, {g_text}, {b_text});
                 background-color: rgb({r_input_bg}, {g_input_bg}, {b_input_bg});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
-            QFileDialog QPushButton {{
+            QFileDialog QPushButton, QDialog QPushButton {{
                 color: rgb({r_text}, {g_text}, {b_text});
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
             }}
-            QFileDialog QPushButton:hover {{
+            QFileDialog QPushButton:hover, QDialog QPushButton:hover {{
                 background-color: rgb({r_border}, {g_border}, {b_border});
                 color: rgb({r_bg}, {g_bg}, {b_bg});
             }}
-            QFileDialog QScrollBar {{
+            QFileDialog QScrollBar, QDialog QScrollBar {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
             }}
-            QFileDialog QScrollBar::handle {{
+            QFileDialog QScrollBar::handle, QDialog QScrollBar::handle {{
                 background-color: rgb({r_border}, {g_border}, {b_border});
             }}
-            QFileDialog QTreeView {{
+            QFileDialog QTreeView, QDialog QTreeView {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 color: rgb({r_text}, {g_text}, {b_text});
                 border: none;
             }}
-            QFileDialog QTreeView::item {{
+            QFileDialog QTreeView::item, QDialog QTreeView::item {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 color: rgb({r_text}, {g_text}, {b_text});
             }}
-            QFileDialog QListView {{
+            QFileDialog QListView, QDialog QListView {{
                 background-color: rgb({r_bg}, {g_bg}, {b_bg});
                 color: rgb({r_text}, {g_text}, {b_text});
             }}
-            QFileDialog QHeaderView::section {{
+            QFileDialog QHeaderView::section, QDialog QHeaderView::section {{
                 background-color: rgb({r_border}, {g_border}, {b_border});
                 color: rgb({r_text}, {g_text}, {b_text});
                 border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QMessageBox {{
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                color: rgb({r_text}, {g_text}, {b_text});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QMessageBox QPushButton {{
+                color: rgb({r_text}, {g_text}, {b_text});
+                background-color: rgb({r_bg}, {g_bg}, {b_bg});
+                border: 1px solid rgb({r_border}, {g_border}, {b_border});
+            }}
+            QMessageBox QPushButton:hover {{
+                background-color: rgb({r_border}, {g_border}, {b_border});
+                color: rgb({r_bg}, {g_bg}, {b_bg});
             }}
         """)
 
