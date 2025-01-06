@@ -176,3 +176,6 @@ saves/*
 !saves/julia.yaml
 !saves/mandelbrot.yaml
 !saves/xmas.yaml
+
+exports/*
+!exports/.gitkeep

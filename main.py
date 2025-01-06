@@ -5,10 +5,11 @@ from copy import deepcopy
 import yaml
 import numpy as np
 from matplotlib import colormaps
+from PIL import Image
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout,
-    QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox, QGroupBox
-
+    QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox, QGroupBox,
+    QDialog, QMessageBox
 )
 
 from PyQt5.QtWidgets import QComboBox
@@ -71,6 +72,7 @@ class FractalApp(QMainWindow):
     VECTOR_COMPONENT_NAMES = ["cₐ", "cᵦ", "zₐ", "zᵦ", "pₐ", "pᵦ"]
     VECTOR_COMPONENT_NAME_INDICES = {name: i for i, name in enumerate(VECTOR_COMPONENT_NAMES)}
     DEFAULT_SAVE_PATH = "./saves"
+    DEFAULT_EXPORT_PATH = "./exports"
 
     def __init__(self, initial_settings):
         super().__init__()
@@ -148,6 +150,8 @@ class FractalApp(QMainWindow):
         file_layout = QHBoxLayout()
         file_layout.addWidget(self.create_button("Load", "Load settings from a file", self.load_settings))
         file_layout.addWidget(self.create_button("Save", "Save current settings to a file", self.save_settings))
+        file_layout.addWidget(self.create_button("Export", "Export fractal as an image", self.export_fractal))
+
         settings_layout.addLayout(file_layout)
 
         # History controls: Undo and Reset
@@ -1063,6 +1067,87 @@ class FractalApp(QMainWindow):
 
         self.render_fractal()
         self.selection_rect = None
+
+    def export_fractal(self):
+        """Export the fractal as an image at a specified resolution."""
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Fractal Image",
+            self.DEFAULT_EXPORT_PATH,
+            "PNG Files (*.png);;JPEG Files (*.jpg);;All Files (*)",
+            options=options,
+        )
+
+        if not file_path:
+            return
+
+        if not file_path.endswith('.png') or file_path.endswith('.jpg'):
+            file_path += ".png"
+
+        resolution_dialog = QDialog(self)
+        resolution_dialog.setWindowTitle("Specify Resolution")
+        layout = QGridLayout()
+
+        width_label = QLabel("Width:")
+        layout.addWidget(width_label, 0, 0)
+        width_input = QLineEdit(str(RESOLUTION[0]))
+        layout.addWidget(width_input, 0, 1)
+
+        height_label = QLabel("Height:")
+        layout.addWidget(height_label, 1, 0)
+        height_input = QLineEdit(str(RESOLUTION[1]))
+        layout.addWidget(height_input, 1, 1)
+
+        save_button = QPushButton("Save")
+        layout.addWidget(save_button, 2, 0, 1, 2)
+        resolution_dialog.setLayout(layout)
+
+        def on_save():
+            try:
+                width = int(width_input.text())
+                height = int(height_input.text())
+            except ValueError:
+                QMessageBox.warning(self, "Invalid Input", "Please enter valid integers for resolution.")
+            self.render_and_save_fractal_pil(file_path, (width, height))
+            resolution_dialog.accept()
+
+        save_button.clicked.connect(on_save)
+        resolution_dialog.exec()
+
+    def render_and_save_fractal_pil(self, file_path, resolution):
+        """Render the fractal at a given resolution and save it to a file using Pillow."""
+        logging.info(f"Exporting fractal to {file_path} at resolution {resolution}...")
+
+        # Compute fractal data
+        sampled_points = sample_plane(
+            self.settings.u,
+            self.settings.o,
+            self.settings.v,
+            self.settings.center,
+            self.settings.rotation,
+            self.settings.scale,
+            resolution,
+        )
+        max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
+        escape_counts = compute_fractal(
+            sampled_points,
+            max_iterations=int(max_iterations),
+            escape_radius=ESCAPE_RADIUS,
+        )
+
+        # Normalize and apply the colormap
+        min_val = escape_counts.min()
+        max_val = escape_counts.max()
+        normalized = (escape_counts - min_val) / (max_val - min_val)
+        colored = (self.colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
+
+        # Create a PIL Image
+        image = Image.fromarray(colored, mode="RGB")
+
+        # Save the image
+        image.save(file_path)
+        logging.info(f"Fractal successfully exported to {file_path}.")
 
 
 if __name__ == "__main__":
