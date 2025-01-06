@@ -70,6 +70,7 @@ class FractalApp(QMainWindow):
     CONTROLLS_WIDTH = INPUT_WIDTH * 4
     VECTOR_COMPONENT_NAMES = ["cₐ", "cᵦ", "zₐ", "zᵦ", "pₐ", "pᵦ"]
     VECTOR_COMPONENT_NAME_INDICES = {name: i for i, name in enumerate(VECTOR_COMPONENT_NAMES)}
+    DEFAULT_SAVE_PATH = "./saves"
 
     def __init__(self, initial_settings):
         super().__init__()
@@ -786,7 +787,13 @@ class FractalApp(QMainWindow):
     def save_settings(self):
         """Save the current fractal settings to a YAML file."""
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Fractal Settings", "", "YAML Files (*.yaml);;All Files (*)", options=options)
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Fractal Settings",
+            self.DEFAULT_SAVE_PATH,
+            "YAML Files (*.yaml);;All Files (*)",
+            options=options,
+        )
         if file_path:
             settings_dict = self.settings_to_dict(self.settings)
             with open(file_path, "w") as file:
@@ -796,7 +803,13 @@ class FractalApp(QMainWindow):
     def load_settings(self):
         """Load fractal settings from a YAML file."""
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Load Fractal Settings", "", "YAML Files (*.yaml);;All Files (*)", options=options)
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load Fractal Settings",
+            self.DEFAULT_SAVE_PATH,
+            "YAML Files (*.yaml);;All Files (*)",
+            options=options,
+        )
         if file_path:
             with open(file_path, "r") as file:
                 settings_dict = yaml.safe_load(file)
