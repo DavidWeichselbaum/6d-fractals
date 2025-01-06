@@ -796,7 +796,8 @@ class FractalApp(QMainWindow):
 
     def rotate_plane(self, axis1_index, axis2_index):
         """
-        Rotate the entire plane around the specified axis defined by two dimensions.
+        Rotate the entire plane around the specified axis defined by two dimensions,
+        considering the center offset.
 
         Args:
             axis1_index (int): The index of the first component.
@@ -818,10 +819,23 @@ class FractalApp(QMainWindow):
         rotation_matrix[axis2_index, axis1_index] = sin_theta
         rotation_matrix[axis2_index, axis2_index] = cos_theta
 
-        # Apply rotation to u, o, v vectors
+        # Translate to origin, rotate, and translate back
+        translation_vector = np.zeros(6)
+        translation_vector[self.VECTOR_COMPONENT_NAME_INDICES["cₐ"]] = self.settings.center[0]
+        translation_vector[self.VECTOR_COMPONENT_NAME_INDICES["cᵦ"]] = self.settings.center[1]
+
+        self.settings.u -= translation_vector  # Translate to origin
+        self.settings.o -= translation_vector
+        self.settings.v -= translation_vector
+
+        # Apply rotation
         self.settings.u = rotation_matrix @ self.settings.u
         self.settings.o = rotation_matrix @ self.settings.o
         self.settings.v = rotation_matrix @ self.settings.v
+
+        self.settings.u += translation_vector  # Translate back
+        self.settings.o += translation_vector
+        self.settings.v += translation_vector
 
         # Update the UI and re-render
         self.render_fractal()
