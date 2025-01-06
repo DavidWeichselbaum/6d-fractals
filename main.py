@@ -68,6 +68,8 @@ class FractalApp(QMainWindow):
     MIN_RECTANGLE = (5, 5)  # Minimum rectangle size in pixels
     INPUT_WIDTH = 60
     CONTROLLS_WIDTH = INPUT_WIDTH * 4
+    VECTOR_COMPONENT_NAMES = ["cₐ", "cᵦ", "zₐ", "zᵦ", "pₐ", "pᵦ"]
+    VECTOR_COMPONENT_NAME_INDICES = {name: i for i, name in enumerate(VECTOR_COMPONENT_NAMES)}
 
     def __init__(self, initial_settings):
         super().__init__()
@@ -179,9 +181,11 @@ class FractalApp(QMainWindow):
         parameters_group.setLayout(parameters_layout)
         controls_layout.addWidget(parameters_group, alignment=Qt.AlignTop)
 
-        # Add a spacer to center the controls vertically
-        controls_layout.addStretch()
+        # Translation Section
+        translation_controls = self.setup_translation_controls()
+        controls_layout.addWidget(translation_controls, alignment=Qt.AlignTop)
 
+        controls_layout.addStretch()
         return controls_layout
 
     def setup_uov_inputs(self):
@@ -194,15 +198,7 @@ class FractalApp(QMainWindow):
         self.col_toggled = {i: False for i in range(3)}  # Track toggled state for columns
 
         # Row labels with toggle behavior
-        row_labels = [
-            "c a",
-            "c b",
-            "z_0 a",
-            "z_0 b",
-            "power a",
-            "power b",
-        ]
-        for row, label in enumerate(row_labels):
+        for row, label in enumerate(self.VECTOR_COMPONENT_NAMES):
             row_label = QLabel(label)
             row_label.setObjectName(f"row_{row}")  # Assign a unique objectName
             row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
@@ -224,7 +220,7 @@ class FractalApp(QMainWindow):
             uov_layout.addWidget(col_label, 0, col + 1)  # Column headers (shifted by 1)
             for row in range(6):
                 line_edit = QLineEdit(str(value[row]))
-                line_edit.setToolTip(f"{header} Component {row_labels[row]}")
+                line_edit.setToolTip(f"{header} Component {self.VECTOR_COMPONENT_NAMES[row]}")
                 line_edit.setFixedWidth(self.INPUT_WIDTH)
                 line_edit.returnPressed.connect(self.update_uov)
                 uov_layout.addWidget(line_edit, row + 1, col + 1)
@@ -402,6 +398,50 @@ class FractalApp(QMainWindow):
         rotate_layout.addWidget(rotate_cw_btn)
         return rotate_layout
 
+    def setup_translation_controls(self):
+        """Create a 6x3 translation control table with column headers between the up and down arrows."""
+        translation_group = QGroupBox("Translation")
+        translation_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+
+        translation_layout = QVBoxLayout()
+        table_layout = QGridLayout()
+
+        # Column headers
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            header_label = QLabel(header)
+            header_label.setAlignment(Qt.AlignCenter)
+            table_layout.addWidget(header_label, 1, col)  # Place headers in the second row (index 1)
+
+        # Up arrow buttons
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            up_button = QPushButton("↑")
+            up_button.setToolTip(f"Translate positively along {header}")
+            up_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, 1))
+            table_layout.addWidget(up_button, 0, col)  # Place up arrows in the first row (index 0)
+
+        # Down arrow buttons
+        for col, header in enumerate(self.VECTOR_COMPONENT_NAMES):
+            down_button = QPushButton("↓")
+            down_button.setToolTip(f"Translate negatively along {header}")
+            down_button.clicked.connect(lambda _, dim=header: self.translate_plane(dim, -1))
+            table_layout.addWidget(down_button, 2, col)  # Place down arrows in the third row (index 2)
+
+        # Add the table to the translation layout
+        translation_layout.addLayout(table_layout)
+
+        # Add displacement field
+        displacement_layout = QHBoxLayout()
+        displacement_label = QLabel("Displacement:")
+        self.displacement = QLineEdit("0.1")
+        self.displacement.setFixedWidth(self.INPUT_WIDTH)
+        self.displacement.setToolTip("Set the displacement magnitude for translation")
+        displacement_layout.addWidget(displacement_label)
+        displacement_layout.addWidget(self.displacement)
+        translation_layout.addLayout(displacement_layout)
+
+        translation_group.setLayout(translation_layout)
+        return translation_group
+
     def create_button(self, label, tooltip, callback):
         """Create a reusable button."""
         button = QPushButton(label)
@@ -500,6 +540,37 @@ class FractalApp(QMainWindow):
                             self.settings.v[row] += perturbation[row]
         self.update_uov_inputs()
         self.render_fractal()
+
+    def translate_plane(self, dimension, direction):
+        """
+        Translate the entire plane along the specified dimension.
+
+        Args:
+            dimension (str): The axis to translate.
+            direction (int): +1 for positive, -1 for negative translation.
+        """
+        try:
+            displacement = float(self.displacement.text()) * direction
+            translation_vector = np.zeros(6)  # Initialize a zero vector for translation
+
+            if dimension in self.VECTOR_COMPONENT_NAME_INDICES:
+                translation_vector[self.VECTOR_COMPONENT_NAME_INDICES[dimension]] = displacement
+            else:
+                logging.warning(f"Unknown dimension: {dimension}")
+                return
+
+            # Apply the translation to the entire plane (u, o, v)
+            self.settings.u += translation_vector
+            self.settings.o += translation_vector
+            self.settings.v += translation_vector
+
+            # Update the UI and re-render the fractal
+            self.update_uov_inputs()
+            self.render_fractal()
+            logging.warning(f"Translated {dimension} by {displacement} in the {direction} direction.")
+
+        except ValueError:
+            logging.warning("Invalid displacement value. Please enter a numeric value.")
 
     def move(self, direction):
         logging.info(f"Moving {direction}...")
