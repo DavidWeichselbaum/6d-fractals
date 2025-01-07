@@ -1,6 +1,8 @@
 import sys
 import logging
 from copy import deepcopy
+from time import time
+from multiprocessing import Process, Queue
 
 import yaml
 import numpy as np
@@ -11,6 +13,7 @@ from PyQt5.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox, QGroupBox,
     QDialog, QMessageBox
 )
+from PyQt5.QtCore import QTimer
 
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
@@ -24,26 +27,18 @@ from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style
 # Setup logging
 LOG_FILE = "log.txt"
 
-# Create a logger
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# Create console handler
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
 console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(console_formatter)
-
-# Create file handler
 file_handler = logging.FileHandler(LOG_FILE)
 file_handler.setLevel(logging.INFO)
 file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(file_formatter)
-
-# Add handlers to the logger
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
-
 
 
 RESOLUTION = (1000, 800)
@@ -52,6 +47,42 @@ ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
+
+mandelbrot_settings = FractalSettings(
+    u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
+    o=np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
+    v=np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
+    center=(0, 0),
+    rotation=0,
+    scale=4.0,
+)
+
+
+def fractal_worker(settings_in_q, fractal_out_q):
+    while True:
+        settings = settings_in_q.get()
+        if settings is None:
+            break
+        logging.info("Starting fractal computation...")
+        sampled_points = sample_plane(
+            settings.u,
+            settings.o,
+            settings.v,
+            settings.center,
+            settings.rotation,
+            settings.scale,
+            RESOLUTION,
+        )
+        max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / settings.scale)
+        start_time = time()
+        escape_counts = compute_fractal(
+            sampled_points,
+            max_iterations=int(max_iterations),
+            escape_radius=ESCAPE_RADIUS
+        )
+        end_time = time()
+        logging.info(f"Fractal computation completed in {end_time - start_time:.2f} seconds.")
+        fractal_out_q.put(escape_counts)
 
 
 def rgba_to_rgb(color):
@@ -78,12 +109,14 @@ class FractalWorker(QThread):
             RESOLUTION,
         )
         max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
+        start_time = time()
         escape_counts = compute_fractal(
             sampled_points,
             max_iterations=int(max_iterations),
             escape_radius=ESCAPE_RADIUS
         )
-        logging.info("Fractal computation completed.")
+        end_time = time()
+        logging.info(f"Fractal computation completed in {end_time - start_time:.2f} seconds.")
         self.finished.emit(escape_counts)
 
 
@@ -96,10 +129,12 @@ class FractalApp(QMainWindow):
     DEFAULT_SAVE_PATH = "./saves"
     DEFAULT_EXPORT_PATH = "./exports"
 
-    def __init__(self, initial_settings):
+    def __init__(self, initial_settings, settings_in_q, fractal_out_q):
         super().__init__()
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
+        self.settings_in_q = settings_in_q
+        self.fractal_out_q = fractal_out_q
 
         self.initialized = False
         self.update_colormap("inferno")
@@ -629,13 +664,24 @@ class FractalApp(QMainWindow):
             self.settings.escape_counts = None  # make historic settings changeable again
         else:
             logging.info("Rendering fractal...")
-            self.worker = FractalWorker(self.settings)
-            self.worker.finished.connect(self.display_fractal)
-            self.worker.start()
+            # self.worker = FractalWorker(self.settings)
+            # self.worker.finished.connect(self.display_fractal)
+            # self.worker.start()
+
+            self.settings_in_q.put(self.settings)
+            escape_counts = self.poll_result()
+            escape_counts = self.fractal_out_q.get()
+            self.display_fractal(escape_counts)
 
         if self.initialized:
             self.update_uov_inputs()
             self.update_movement_inputs()
+
+    def poll_result(self):
+        if not self.fractal_out_q.empty():
+            return self.fractal_out_q.get()
+        else:
+            QTimer.singleShot(100, self.poll_result)
 
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
@@ -649,9 +695,10 @@ class FractalApp(QMainWindow):
         height, width, _ = colored.shape
         q_image = QImage(colored.data, width, height, 3 * width, QImage.Format_RGB888)
 
-        pixmap = QPixmap.fromImage(q_image)
-        self.graphics_scene.clear()
-        self.graphics_scene.addPixmap(pixmap)
+        if self.initialized:
+            pixmap = QPixmap.fromImage(q_image)
+            self.graphics_scene.clear()
+            self.graphics_scene.addPixmap(pixmap)
 
         history_settings = deepcopy(self.settings)
         history_settings.escape_counts = escape_counts
@@ -1091,16 +1138,15 @@ class FractalApp(QMainWindow):
 
 
 if __name__ == "__main__":
-    mandelbrot_settings = FractalSettings(
-        u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
-        o=np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
-        v=np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
-        center=(0, 0),
-        rotation=0,
-        scale=4.0,
-    )
+    settings_in_q = Queue()
+    fractal_out_q = Queue()
+    fractal_process = Process(target=fractal_worker, args=(settings_in_q, fractal_out_q))
+    fractal_process.start()
 
     app = QApplication(sys.argv)
-    main_window = FractalApp(mandelbrot_settings)
+    main_window = FractalApp(mandelbrot_settings, settings_in_q, fractal_out_q)
     main_window.show()
     sys.exit(app.exec())
+
+    settings_in_q.put(None)
+    process.join()
