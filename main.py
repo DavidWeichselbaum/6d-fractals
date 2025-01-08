@@ -41,9 +41,6 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 
-RESOLUTION = (1000, 800)
-# RESOLUTION = (1920, 1080)
-ASPECT_RATIO = RESOLUTION[0] / RESOLUTION[1]
 START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
@@ -65,9 +62,10 @@ def rgba_to_rgb(color):
 class FractalWorker(QThread):
     finished = pyqtSignal(np.ndarray)
 
-    def __init__(self, settings):
+    def __init__(self, settings, resolution):
         super().__init__()
         self.settings = settings
+        self.resolution = resolution
 
     def run(self):
         """Perform fractal computation in a separate thread."""
@@ -80,7 +78,7 @@ class FractalWorker(QThread):
             self.settings.center,
             self.settings.rotation,
             self.settings.scale,
-            RESOLUTION,
+            self.resolution,
         )
         sample_time = time()
         max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
@@ -636,12 +634,16 @@ class FractalApp(QMainWindow):
             self.settings.escape_counts = None  # make historic settings changeable again
         else:
             logging.info("Rendering fractal...")
-            self.worker = FractalWorker(self.settings)
+            self.worker = FractalWorker(self.settings, self.get_viewport_dimensions())
             self.worker.finished.connect(self.display_fractal)
             self.worker.start()
 
         self.update_uov_inputs()
         self.update_movement_inputs()
+
+    def get_viewport_dimensions(self):
+        viewport_rect = self.graphics_view.viewport().rect()
+        return (viewport_rect.width(), viewport_rect.height())
 
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
@@ -957,10 +959,12 @@ class FractalApp(QMainWindow):
         dx = abs(end_scene.x() - start_scene.x())
         dy = abs(end_scene.y() - start_scene.y())
 
-        if dx / RESOLUTION[0] > dy / RESOLUTION[1]:
-            dy = dx / ASPECT_RATIO
+        resolution = self.get_viewport_dimensions()
+        aspect_ratio = resolution[0] / resolution[1]
+        if dx / resolution[0] > dy / resolution[1]:
+            dy = dx / aspect_ratio
         else:
-            dx = dy * ASPECT_RATIO
+            dx = dy * aspect_ratio
 
         # Adjust for dragging direction
         if end_scene.x() < start_scene.x():
@@ -1002,14 +1006,15 @@ class FractalApp(QMainWindow):
         cx = (x0 + x1) / 2 - self.graphics_scene.sceneRect().x()
         cy = (y0 + y1) / 2 - self.graphics_scene.sceneRect().y()
 
-        cx_normalized = (cx / self.graphics_scene.sceneRect().width() - 0.5) * RESOLUTION[0] / RESOLUTION[1]
+        resolution = self.get_viewport_dimensions()
+        cx_normalized = (cx / self.graphics_scene.sceneRect().width() - 0.5) * resolution[0] / resolution[1]
         cy_normalized = (cy / self.graphics_scene.sceneRect().height() - 0.5)
 
         self.settings.center = (
             self.settings.center[0] + cx_normalized * self.settings.scale,
             self.settings.center[1] + cy_normalized * self.settings.scale
         )
-        self.settings.scale *= min(width_pixels / RESOLUTION[0], height_pixels / RESOLUTION[1])
+        self.settings.scale *= min(width_pixels / resolution[0], height_pixels / resolution[1])
 
         self.render_fractal()
         self.selection_rect = None
@@ -1031,18 +1036,19 @@ class FractalApp(QMainWindow):
         if not file_path.endswith('.png') or file_path.endswith('.jpg'):
             file_path += ".png"
 
+        resolution = self.get_viewport_dimensions()
         resolution_dialog = QDialog(self)
         resolution_dialog.setWindowTitle("Specify Resolution")
         layout = QGridLayout()
 
         width_label = QLabel("Width:")
         layout.addWidget(width_label, 0, 0)
-        width_input = QLineEdit(str(RESOLUTION[0]))
+        width_input = QLineEdit(str(resolution[0]))
         layout.addWidget(width_input, 0, 1)
 
         height_label = QLabel("Height:")
         layout.addWidget(height_label, 1, 0)
-        height_input = QLineEdit(str(RESOLUTION[1]))
+        height_input = QLineEdit(str(resolution[1]))
         layout.addWidget(height_input, 1, 1)
 
         save_button = QPushButton("Save")
