@@ -24,8 +24,14 @@ from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
 from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style
 
-# Setup logging
-LOG_FILE = "log.txt"
+
+LOG_PATH = "log.txt"
+DEFAULT_SAVE_PATH = "./saves"
+DEFAULT_EXPORT_PATH = "./exports"
+START_ITERATIONS = 100
+ITERATION_GROWTH = 20
+ESCAPE_RADIUS = 2.0
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -33,17 +39,13 @@ console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
 console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(console_formatter)
-file_handler = logging.FileHandler(LOG_FILE)
+file_handler = logging.FileHandler(LOG_PATH)
 file_handler.setLevel(logging.INFO)
 file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(file_formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-
-START_ITERATIONS = 100
-ITERATION_GROWTH = 20
-ESCAPE_RADIUS = 2.0
 
 mandelbrot_settings = FractalSettings(
     u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
@@ -98,15 +100,14 @@ class FractalApp(QMainWindow):
     CONTROLLS_WIDTH = INPUT_WIDTH * 4
     VECTOR_COMPONENT_NAMES = ["cₐ", "cᵦ", "zₐ", "zᵦ", "pₐ", "pᵦ"]
     VECTOR_COMPONENT_NAME_INDICES = {name: i for i, name in enumerate(VECTOR_COMPONENT_NAMES)}
-    DEFAULT_SAVE_PATH = "./saves"
-    DEFAULT_EXPORT_PATH = "./exports"
 
     def __init__(self, initial_settings):
         super().__init__()
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
+        self.current_escape_counts = None
 
-        self.update_colormap("inferno", render=False)
+        self.update_colormap("inferno")
         self.init_ui()
         self.render_fractal()
 
@@ -508,13 +509,13 @@ class FractalApp(QMainWindow):
         self.rotation_field.setText(str(self.settings.rotation))
         self.rotation_field.setCursorPosition(0)
 
-    def update_colormap(self, colormap_name, render=True):
+    def update_colormap(self, colormap_name):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
         self.colormap = colormaps.get_cmap(colormap_name)
         self.update_interface_color()
-        if render:
-            self.render_fractal()
+        if self.current_escape_counts is not None:
+            self.display_fractal(self.current_escape_counts)
 
     def update_interface_color(self):
         """Update the interface colors to match the colormap."""
@@ -648,6 +649,7 @@ class FractalApp(QMainWindow):
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
         logging.info("Displaying fractal...")
+        self.current_escape_counts = escape_counts
         min_val = escape_counts.min()
         max_val = escape_counts.max()
         normalized = (escape_counts - min_val) / (max_val - min_val)
@@ -864,7 +866,7 @@ class FractalApp(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Fractal Settings",
-            self.DEFAULT_SAVE_PATH,
+            DEFAULT_SAVE_PATH,
             "YAML Files (*.yaml);;All Files (*)",
             options=options,
         )
@@ -880,7 +882,7 @@ class FractalApp(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Load Fractal Settings",
-            self.DEFAULT_SAVE_PATH,
+            DEFAULT_SAVE_PATH,
             "YAML Files (*.yaml);;All Files (*)",
             options=options,
         )
@@ -1025,7 +1027,7 @@ class FractalApp(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Export Fractal Image",
-            self.DEFAULT_EXPORT_PATH,
+            DEFAULT_EXPORT_PATH,
             "PNG Files (*.png);;JPEG Files (*.jpg);;All Files (*)",
             options=options,
         )
