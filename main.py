@@ -635,7 +635,8 @@ class FractalApp(QMainWindow):
             self.settings.escape_counts = None  # make historic settings changeable again
         else:
             logging.info("Rendering fractal...")
-            self.worker = FractalWorker(self.settings, self.get_viewport_dimensions())
+            self.dimensions = self.get_viewport_dimensions()
+            self.worker = FractalWorker(self.settings, self.dimensions)
             self.worker.finished.connect(self.display_fractal)
             self.worker.start()
 
@@ -961,9 +962,8 @@ class FractalApp(QMainWindow):
         dx = abs(end_scene.x() - start_scene.x())
         dy = abs(end_scene.y() - start_scene.y())
 
-        resolution = self.get_viewport_dimensions()
-        aspect_ratio = resolution[0] / resolution[1]
-        if dx / resolution[0] > dy / resolution[1]:
+        aspect_ratio = self.dimensions[0] / self.dimensions[1]
+        if dx / self.dimensions[0] > dy / self.dimensions[1]:
             dy = dx / aspect_ratio
         else:
             dx = dy * aspect_ratio
@@ -1008,7 +1008,7 @@ class FractalApp(QMainWindow):
         cx = (x0 + x1) / 2 - self.graphics_scene.sceneRect().x()
         cy = (y0 + y1) / 2 - self.graphics_scene.sceneRect().y()
 
-        resolution = self.get_viewport_dimensions()
+        resolution = self.dimensions
         cx_normalized = (cx / self.graphics_scene.sceneRect().width() - 0.5) * resolution[0] / resolution[1]
         cy_normalized = (cy / self.graphics_scene.sceneRect().height() - 0.5)
 
@@ -1038,7 +1038,7 @@ class FractalApp(QMainWindow):
         if not file_path.endswith('.png') or file_path.endswith('.jpg'):
             file_path += ".png"
 
-        resolution = self.get_viewport_dimensions()
+        resolution = self.dimensions
         resolution_dialog = QDialog(self)
         resolution_dialog.setWindowTitle("Specify Resolution")
         layout = QGridLayout()
