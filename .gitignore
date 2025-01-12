@@ -181,3 +181,6 @@ exports/*
 !exports/.gitkeep
 
 log.txt
+
+outcmaes/*
+optimization_images/*
