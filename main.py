@@ -650,15 +650,11 @@ class FractalApp(QMainWindow):
     def display_fractal(self, escape_counts):
         """Convert fractal data to an image with colormap and display it."""
         logging.info("Displaying fractal...")
+
         self.current_escape_counts = escape_counts
-        min_val = escape_counts.min()
-        max_val = escape_counts.max()
-        normalized = (escape_counts - min_val) / (max_val - min_val)
-
-        colored = (self.colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
-
-        height, width, _ = colored.shape
-        q_image = QImage(colored.data, width, height, 3 * width, QImage.Format_RGB888)
+        image_array = self.get_image_from_escape_counts(self.current_escape_counts)
+        height, width, _ = image_array.shape
+        q_image = QImage(image_array.data, width, height, 3 * width, QImage.Format_RGB888)
 
         pixmap = QPixmap.fromImage(q_image)
         self.graphics_scene.clear()
@@ -669,6 +665,13 @@ class FractalApp(QMainWindow):
         self.history.append(history_settings)
 
         logging.info("Fractal display updated.")
+
+    def get_image_from_escape_counts(self, escape_counts):
+        min_val = escape_counts.min()
+        max_val = escape_counts.max()
+        normalized = (escape_counts - min_val) / (max_val - min_val)
+        image_array = (self.colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
+        return image_array
 
     def zoom_in(self):
         logging.info("Zooming in...")
@@ -1070,36 +1073,14 @@ class FractalApp(QMainWindow):
         resolution_dialog.exec()
 
     def render_and_save_fractal_pil(self, file_path, resolution):
-        """Render the fractal at a given resolution and save it to a file using Pillow."""
         logging.info(f"Exporting fractal to {file_path} at resolution {resolution}...")
+        self.worker = FractalWorker(self.settings, resolution)
+        self.worker.finished.connect(lambda escape_counts: self.save_image(escape_counts, file_path))
+        self.worker.start()
 
-        # Compute fractal data
-        sampled_points = sample_plane(
-            self.settings.u,
-            self.settings.o,
-            self.settings.v,
-            self.settings.center,
-            self.settings.rotation,
-            self.settings.scale,
-            resolution,
-        )
-        max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
-        escape_counts = compute_fractal(
-            sampled_points,
-            max_iterations=int(max_iterations),
-            escape_radius=ESCAPE_RADIUS,
-        )
-
-        # Normalize and apply the colormap
-        min_val = escape_counts.min()
-        max_val = escape_counts.max()
-        normalized = (escape_counts - min_val) / (max_val - min_val)
-        colored = (self.colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
-
-        # Create a PIL Image
-        image = Image.fromarray(colored, mode="RGB")
-
-        # Save the image
+    def save_image(self, escape_counts, file_path):
+        image_array = self.get_image_from_escape_counts(escape_counts)
+        image = Image.fromarray(image_array, mode="RGB")
         image.save(file_path)
         logging.info(f"Fractal successfully exported to {file_path}.")
 

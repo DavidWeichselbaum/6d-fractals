@@ -5,7 +5,7 @@ import numpy as np
 
 def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0, resolution=(500, 500)):
     """
-    Sample a 2D plane in R^4 defined by three points: u, v, and o (origin point).
+    Sample a 2D plane in R^2n defined by three points: u, v, and o (origin point) and convert them to a complex plane in R^n.
     """
     w, h = resolution
     x, y = center
