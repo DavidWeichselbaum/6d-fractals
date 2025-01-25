@@ -123,8 +123,7 @@ class FractalApp(QMainWindow):
         main_layout = QHBoxLayout()
 
         # Add the fractal display
-        fractal_layout = QVBoxLayout()
-        self.setup_fractal_display(fractal_layout)
+        fractal_layout = self.setup_fractal_display()
         main_layout.addLayout(fractal_layout)
 
         # Add the control buttons
@@ -135,6 +134,16 @@ class FractalApp(QMainWindow):
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
+
+    def setup_fractal_display(self):
+        fractal_layout = QVBoxLayout()
+
+        """Set up the fractal display area."""
+        self.graphics_view = QGraphicsView()
+        self.graphics_scene = QGraphicsScene()
+        self.graphics_view.setScene(self.graphics_scene)
+        self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
+        fractal_layout.addWidget(self.graphics_view)
 
         # Variables for rectangle selection
         self.start_pos = None
@@ -149,13 +158,7 @@ class FractalApp(QMainWindow):
         self.graphics_view.setFocus()
         self.graphics_view.keyPressEvent = self.on_key
 
-    def setup_fractal_display(self, layout):
-        """Set up the fractal display area."""
-        self.graphics_view = QGraphicsView()
-        self.graphics_scene = QGraphicsScene()
-        self.graphics_view.setScene(self.graphics_scene)
-        self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
-        layout.addWidget(self.graphics_view)
+        return fractal_layout
 
     def setup_controls(self):
         """Set up the control buttons and input fields with compact frames."""
