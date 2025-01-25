@@ -22,7 +22,7 @@ from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
 from utils.parameters import sample_plane
 from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
-from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style
+from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style, get_font
 
 
 LOG_PATH = "log.txt"
@@ -115,6 +115,9 @@ class FractalApp(QMainWindow):
         self.setWindowTitle("6D Fractal Explorer")
         # self.setGeometry(100, 100, 1000, 600)
         self.showMaximized()
+
+        # Default font
+        app.setFont(get_font())
 
         # Main layout: Horizontal layout with fractal display and controls
         main_layout = QHBoxLayout()

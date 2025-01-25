@@ -1,3 +1,10 @@
+from PyQt5.QtGui import QFont
+
+
+def get_font():
+    return QFont("FreeSans", 12)
+
+
 def get_stylesheet():
     """
     Returns the main stylesheet with placeholders for dynamic variables.
