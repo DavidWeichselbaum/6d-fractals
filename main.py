@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QTimer
 
-from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QComboBox, QScrollArea
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
 from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
 
@@ -98,6 +98,7 @@ class FractalApp(QMainWindow):
     MIN_RECTANGLE = (5, 5)  # Minimum rectangle size in pixels
     INPUT_WIDTH = 60
     CONTROLLS_WIDTH = INPUT_WIDTH * 4
+    CONTROLLS_AREA_WIDTH = CONTROLLS_WIDTH + INPUT_WIDTH // 2
     VECTOR_COMPONENT_NAMES = ["cₐ", "cᵦ", "zₐ", "zᵦ", "pₐ", "pᵦ"]
     VECTOR_COMPONENT_NAME_INDICES = {name: i for i, name in enumerate(VECTOR_COMPONENT_NAMES)}
 
@@ -128,7 +129,7 @@ class FractalApp(QMainWindow):
 
         # Add the control buttons
         controls_layout = self.setup_controls()
-        main_layout.addLayout(controls_layout)
+        main_layout.addWidget(controls_layout)
 
         # Main widget
         container = QWidget()
@@ -163,15 +164,23 @@ class FractalApp(QMainWindow):
     def setup_controls(self):
         """Set up the control buttons and input fields with compact frames."""
         controls_layout = QVBoxLayout()
-
         controls_layout.addWidget(self.create_settings_group(), alignment=Qt.AlignTop)
         controls_layout.addWidget(self.create_movement_group(), alignment=Qt.AlignTop)
         controls_layout.addWidget(self.create_translation_group(), alignment=Qt.AlignTop)
         controls_layout.addWidget(self.create_rotation_group(), alignment=Qt.AlignTop)
         controls_layout.addWidget(self.create_parameters_group(), alignment=Qt.AlignTop)
-
         controls_layout.addStretch()
-        return controls_layout
+
+        # Create a scroll area for the controls
+        controls_widget = QWidget()
+        controls_widget.setLayout(controls_layout)
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(controls_widget)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Hide scrollbar until needed
+        scroll_area.setMaximumWidth(self.CONTROLLS_AREA_WIDTH)
+
+        return scroll_area
 
     def create_settings_group(self):
         """Create the Settings group combining file, history, and color controls."""

@@ -10,6 +10,10 @@ def get_stylesheet():
     Returns the main stylesheet with placeholders for dynamic variables.
     """
     return """
+     * {{
+        background-color: rgb({r_bg}, {g_bg}, {b_bg});
+        color: rgb({r_text}, {g_text}, {b_text});
+    }}
     QMainWindow {{
         background-color: rgb({r_bg}, {g_bg}, {b_bg});
     }}
@@ -31,9 +35,6 @@ def get_stylesheet():
         background-color: rgb({r_bg}, {g_bg}, {b_bg});
         color: rgb({r_text}, {g_text}, {b_text});
         border: 1px solid rgb({r_border}, {g_border}, {b_border});
-    }}
-    QScrollBar {{
-        background-color: rgb({r_bg}, {g_bg}, {b_bg});
     }}
     QScrollBar::handle {{
         background-color: rgb({r_border}, {g_border}, {b_border});
