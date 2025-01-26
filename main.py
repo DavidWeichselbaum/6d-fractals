@@ -535,21 +535,22 @@ class FractalApp(QMainWindow):
     def update_interface_color(self):
         """Update the interface colors to match the colormap."""
         selector_color = self.colormap(0.5)
-        background_color = self.colormap(0.0)  # RGBA tuple for background
-        text_color = self.colormap(0.3)  # RGBA tuple for text
-        border_color = self.colormap(0.5)  # RGBA tuple for borders
-        border_group_color = self.colormap(0.1)  # RGBA tuple for group borders
-        input_bg_color = self.colormap(0.1)  # Slightly lighter for input fields
-        untoggled_bg_color = self.colormap(0.0)  # Background for untoggled elements
-        untoggled_text_color = self.colormap(0.3)  # Text for untoggled elements
-        toggled_bg_color = self.colormap(0.3)  # Background for toggled elements
-        toggled_text_color = self.colormap(0.0)  # Text for toggled elements
+
+        text_color = self.colormap(0.3)
+        background_color = self.colormap(0.0)
+        input_bg_color = self.colormap(0.1)
+        border_color = self.colormap(0.5)
+
+        untoggled_bg_color = self.colormap(0.0)
+        untoggled_text_color = self.colormap(0.3)
+
+        toggled_bg_color = self.colormap(0.3)
+        toggled_text_color = self.colormap(0.0)
 
         # Convert RGBA to RGB
         r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
         r_text, g_text, b_text = rgba_to_rgb(text_color)
         r_border, g_border, b_border = rgba_to_rgb(border_color)
-        r_border_group, g_border_group, b_border_group = rgba_to_rgb(border_group_color)
         r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(input_bg_color)
         r_untoggled_bg, g_untoggled_bg, b_untoggled_bg = rgba_to_rgb(untoggled_bg_color)
         r_untoggled_text, g_untoggled_text, b_untoggled_text = rgba_to_rgb(untoggled_text_color)
@@ -575,7 +576,6 @@ class FractalApp(QMainWindow):
             "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
             "r_text": r_text, "g_text": g_text, "b_text": b_text,
             "r_border": r_border, "g_border": g_border, "b_border": b_border,
-            "r_border_group": r_border_group, "g_border_group": g_border_group, "b_border_group": b_border_group,
             "r_input_bg": r_input_bg, "g_input_bg": g_input_bg, "b_input_bg": b_input_bg,
             "r_untoggled_bg": r_untoggled_bg, "g_untoggled_bg": g_untoggled_bg, "b_untoggled_bg": b_untoggled_bg,
             "r_untoggled_text": r_untoggled_text, "g_untoggled_text": g_untoggled_text, "b_untoggled_text": b_untoggled_text,
