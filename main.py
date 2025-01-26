@@ -955,16 +955,13 @@ class FractalApp(QMainWindow):
         """Handle mouse events for rectangle selection."""
         if event.type() == event.MouseButtonPress and event.button() == Qt.LeftButton:
             self.start_pos = event.pos()
-            return True
         elif event.type() == event.MouseMove and self.start_pos:
             end_pos = event.pos()
             self.draw_selection_rectangle(self.start_pos, end_pos)
-            return True
         elif event.type() == event.MouseButtonRelease and event.button() == Qt.LeftButton:
             if self.selection_rect:
                 self.handle_selection()
                 self.start_pos = None
-            return True
         return super().eventFilter(source, event)
 
     def draw_selection_rectangle(self, start_pos, end_pos):
@@ -977,8 +974,8 @@ class FractalApp(QMainWindow):
         end_scene = self.graphics_view.mapToScene(end_pos)
 
         # Calculate dx and dy while constraining to the aspect ratio
-        dx = abs(end_scene.x() - start_scene.x())
-        dy = abs(end_scene.y() - start_scene.y())
+        dx = end_scene.x() - start_scene.x()
+        dy = end_scene.y() - start_scene.y()
 
         aspect_ratio = self.dimensions[0] / self.dimensions[1]
         if dx / self.dimensions[0] > dy / self.dimensions[1]:
@@ -986,20 +983,22 @@ class FractalApp(QMainWindow):
         else:
             dx = dy * aspect_ratio
 
-        # Adjust for dragging direction
-        if end_scene.x() < start_scene.x():
+        # correct for moving up/left instead of down/right
+        if dx < 0:
             dx = -dx
-        if end_scene.y() < start_scene.y():
+        if dy < 0:
             dy = -dy
 
         # Constrain the rectangle to stay within the scene boundaries
         constrained_end_scene = QPointF(start_scene.x() + dx, start_scene.y() + dy)
+        constrained_start_scene = QPointF(start_scene.x() - dx, start_scene.y() - dy)
         scene_rect = self.graphics_scene.sceneRect()
         if not scene_rect.contains(start_scene) or not scene_rect.contains(constrained_end_scene):
             return
 
+
         # Create and display the selection rectangle
-        self.selection_rect = QRectF(start_scene, constrained_end_scene)
+        self.selection_rect = QRectF(constrained_start_scene, constrained_end_scene)
         self.selection_rect_visual = self.graphics_scene.addRect(self.selection_rect, QPen(self.selector_color, 2))
 
     def handle_selection(self):
