@@ -1103,4 +1103,9 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = FractalApp(mandelbrot_settings)
     main_window.show()
+
+    from utils.debug import DebugTool
+    debug_tool = DebugTool()
+    debug_tool.show()
+
     sys.exit(app.exec())
