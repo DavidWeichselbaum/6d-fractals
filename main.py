@@ -332,7 +332,7 @@ class FractalApp(QMainWindow):
             row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
             row_label.setAlignment(Qt.AlignCenter)
             row_label.mousePressEvent = lambda event, r=row: self.toggle_row(r)  # Bind toggle event
-            row_label.setFixedWidth(self.INPUT_WIDTH)
+            row_label.setFixedWidth(self.CONTROLLS_WIDTH // 5)
             uov_layout.addWidget(row_label, row + 1, 0)  # First column for row labels
 
         # Column headers with toggle behavior
@@ -353,7 +353,7 @@ class FractalApp(QMainWindow):
             for row in range(6):
                 line_edit = QLineEdit(str(value[row]))
                 line_edit.setToolTip(f"{header} Component {self.VECTOR_COMPONENT_NAMES[row]}")
-                line_edit.setFixedWidth(self.INPUT_WIDTH)
+                line_edit.setFixedWidth(self.CONTROLLS_WIDTH // 5)
                 line_edit.returnPressed.connect(self.update_uov)
                 uov_layout.addWidget(line_edit, row + 1, col + 1)
                 field_list.append(line_edit)
@@ -536,10 +536,10 @@ class FractalApp(QMainWindow):
         """Update the interface colors to match the colormap."""
         selector_color = self.colormap(0.5)
 
-        text_color = self.colormap(0.3)
+        text_color = self.colormap(0.5)
         background_color = self.colormap(0.0)
         input_bg_color = self.colormap(0.1)
-        border_color = self.colormap(0.5)
+        border_color = self.colormap(0.3)
 
         untoggled_bg_color = self.colormap(0.0)
         untoggled_text_color = self.colormap(0.3)

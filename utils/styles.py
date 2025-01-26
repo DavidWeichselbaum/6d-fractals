@@ -12,6 +12,9 @@ def get_stylesheet():
         background-color: rgb({r_bg}, {g_bg}, {b_bg});
         border: 1px solid rgb({r_border}, {g_border}, {b_border});
     }}
+    QGraphicsView {{
+        border: none;
+    }}
     QPushButton:hover {{
         background-color: rgb({r_border}, {g_border}, {b_border});
         color: rgb({r_bg}, {g_bg}, {b_bg});
