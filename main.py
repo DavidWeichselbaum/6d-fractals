@@ -24,6 +24,7 @@ from utils.parameters import sample_plane
 from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
 from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style, get_font
+from utils.plot_utils import get_basis_projection_image
 
 
 LOG_PATH = "log.txt"
@@ -108,6 +109,8 @@ class FractalApp(QMainWindow):
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
         self.current_escape_counts = None
+        self.show_basis_vectors = False
+        self.basis_vector_pixmap = None
 
         self.update_colormap("inferno")
         self.init_ui()
@@ -117,6 +120,7 @@ class FractalApp(QMainWindow):
         self.setWindowTitle("6D Fractal Explorer")
         # self.setGeometry(100, 100, 1000, 600)
         self.showMaximized()
+        self.keyPressEvent = self.on_key
 
         # Default font
         app.setFont(get_font())
@@ -155,10 +159,6 @@ class FractalApp(QMainWindow):
         # Enable mouse events for rectangle selection
         self.graphics_view.setMouseTracking(True)
         self.graphics_view.viewport().installEventFilter(self)
-
-        # Connect key press events
-        self.graphics_view.setFocus()
-        self.graphics_view.keyPressEvent = self.on_key
 
         return fractal_layout
 
@@ -674,11 +674,14 @@ class FractalApp(QMainWindow):
 
         pixmap = QPixmap.fromImage(q_image)
         self.graphics_scene.clear()
+        self.basis_vector_pixmap = None
         self.graphics_scene.addPixmap(pixmap)
 
         history_settings = deepcopy(self.settings)
         history_settings.escape_counts = escape_counts
         self.history.append(history_settings)
+
+        self.hande_basis_vector_display()
 
         logging.info("Fractal display updated.")
 
@@ -744,6 +747,28 @@ class FractalApp(QMainWindow):
                         elif col == 2:  # v
                             self.settings.v[row] += perturbation[row]
         self.render_fractal()
+
+    def hande_basis_vector_display(self):
+        if self.basis_vector_pixmap:
+            self.graphics_scene.removeItem(self.basis_vector_pixmap)
+            self.basis_vector_pixmap = None
+
+        if self.show_basis_vectors:
+            pil_image = get_basis_projection_image(self.settings)
+            data = pil_image.tobytes("raw", "RGBA")
+            qimage = QImage(data, pil_image.width, pil_image.height, QImage.Format_RGBA8888)
+            pixmap = QPixmap.fromImage(qimage)
+
+            self.basis_vector_pixmap = self.graphics_scene.addPixmap(pixmap)
+
+            scene_rect = self.graphics_scene.sceneRect()
+            image_width = pixmap.width()
+            image_height = pixmap.height()
+
+            center_x = scene_rect.x() + (scene_rect.width() - image_width) / 2
+            center_y = scene_rect.y() + (scene_rect.height() - image_height) / 2
+
+            self.basis_vector_pixmap.setPos(center_x, center_y)
 
     def translate_plane(self, dimension, direction):
         """
@@ -879,6 +904,9 @@ class FractalApp(QMainWindow):
                 self.showMaximized()
             else:
                 self.showFullScreen()
+        elif event.key() == Qt.Key_F4:
+            self.show_basis_vectors = not self.show_basis_vectors
+            self.hande_basis_vector_display()
 
     def save_settings(self):
         """Save the current fractal settings to a YAML file."""
