@@ -2,6 +2,7 @@ import sys
 import yaml
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
 import numpy as np
 from io import BytesIO
 from PIL import Image
@@ -41,10 +42,6 @@ def project_basis_to_2d(v, o, u):
     return projections
 
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch
-import numpy as np
-
 def plot_2d_projections(projections):
     styles = {
         "ca": ("red", "-"),
@@ -67,9 +64,8 @@ def plot_2d_projections(projections):
         end = np.array(coords)
 
         # Offset starting and end point slightly
-        arrow_length = np.linalg.norm(end - start)
-        offset_fraction = 0.04
-        offset = offset_fraction * (end - start) / arrow_length
+        offset_fraction = 0.05
+        offset = offset_fraction * (end - start)
         line_start = start + offset
         line_end = end - offset
 
@@ -84,11 +80,9 @@ def plot_2d_projections(projections):
         )
         ax.add_patch(arrow)
 
-        ax.text(coords[0] * 1.1, coords[1] * 1.1, f" {name}", fontsize=12, color=color)
+        # ax.text(coords[0] * 1.1, coords[1] * 1.1, f" {name}", fontsize=12, color=color)
 
-    ax.set_xlabel("Pixels x")
-    ax.set_ylabel("Pixels y")
-    plt.title("Projections of Basis Vectors on Pixel Space")
+    ax.axis('off')
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
     plt.gca().set_aspect('equal', adjustable='box')
