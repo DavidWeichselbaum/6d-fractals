@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import QComboBox, QScrollArea
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
 from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
 
+from utils.utils import settings_to_dict, dict_to_settings
 from utils.parameters import sample_plane
 from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
@@ -890,7 +891,7 @@ class FractalApp(QMainWindow):
             options=options,
         )
         if file_path:
-            settings_dict = self.settings_to_dict(self.settings)
+            settings_dict = settings_to_dict(self.settings)
             with open(file_path, "w") as file:
                 yaml.dump(settings_dict, file, default_flow_style=False)
             logging.info(f"Settings saved to {file_path}")
@@ -908,34 +909,9 @@ class FractalApp(QMainWindow):
         if file_path:
             with open(file_path, "r") as file:
                 settings_dict = yaml.safe_load(file)
-                self.settings = self.dict_to_settings(settings_dict)
+                self.settings = dict_to_settings(settings_dict)
             logging.info(f"Settings loaded from {file_path}")
             self.render_fractal()
-
-    @staticmethod
-    def settings_to_dict(settings):
-        """Convert FractalSettings to a dictionary for YAML serialization."""
-        return {
-            "u": settings.u.tolist(),  # Convert numpy array to list
-            "o": settings.o.tolist(),  # Convert numpy array to list
-            "v": settings.v.tolist(),  # Convert numpy array to list
-            "center": list(settings.center),  # Convert tuple to list for YAML compatibility
-            "rotation": settings.rotation,
-            "scale": settings.scale,
-            "escape_counts": None,  # Skip escape_counts for serialization
-        }
-
-    @staticmethod
-    def dict_to_settings(settings_dict):
-        """Convert a dictionary to a FractalSettings object."""
-        return FractalSettings(
-            u=np.array(settings_dict["u"]),  # Convert list back to numpy array
-            o=np.array(settings_dict["o"]),  # Convert list back to numpy array
-            v=np.array(settings_dict["v"]),  # Convert list back to numpy array
-            center=tuple(settings_dict["center"]),  # Convert list back to tuple
-            rotation=settings_dict["rotation"],
-            scale=settings_dict["scale"],
-        )
 
     def toggle_row(self, row):
         """Toggle the state of a row."""
@@ -1104,8 +1080,8 @@ if __name__ == "__main__":
     main_window = FractalApp(mandelbrot_settings)
     main_window.show()
 
-    from utils.debug import DebugTool
-    debug_tool = DebugTool()
-    debug_tool.show()
+    # from utils.debug import DebugTool
+    # debug_tool = DebugTool()
+    # debug_tool.show()
 
     sys.exit(app.exec())
