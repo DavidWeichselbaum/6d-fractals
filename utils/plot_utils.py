@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
 from PIL import Image
+from matplotlib.patches import FancyArrowPatch
 
 from utils.datatypes import FractalSettings
 
@@ -40,6 +41,10 @@ def project_basis_to_2d(v, o, u):
     return projections
 
 
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
+import numpy as np
+
 def plot_2d_projections(projections):
     styles = {
         "ca": ("red", "-"),
@@ -52,15 +57,33 @@ def plot_2d_projections(projections):
     max_length = max(np.linalg.norm(coords) for coords in projections.values())
     limit = 1.5 * max_length  # Set the limits to 1.5 times the maximum length
 
-    fig, ax = plt.subplots(figsize=(8, 8), dpi=100)
+    fig, ax = plt.subplots(figsize=(8, 8), dpi=150)
     fig.patch.set_alpha(0.0)  # Transparent background
     ax.set_alpha(0.0)  # Transparent plot area
+
     for name, coords in projections.items():
         color, linestyle = styles[name]
-        ax.arrow(
-            0, 0, coords[0], coords[1],
-            head_width=0.05, head_length=0.05, fc=color, ec=color, linestyle=linestyle
+        start = np.array([0, 0])
+        end = np.array(coords)
+
+        # Offset starting and end point slightly
+        arrow_length = np.linalg.norm(end - start)
+        offset_fraction = 0.04
+        offset = offset_fraction * (end - start) / arrow_length
+        line_start = start + offset
+        line_end = end - offset
+
+        ax.plot(
+            [line_start[0], line_end[0]], [line_start[1], line_end[1]],
+            linestyle=linestyle, color=color, linewidth=2, zorder=1
         )
+        arrow = FancyArrowPatch(
+            start, end,
+            arrowstyle='-|>', color=color,
+            mutation_scale=50, linewidth=0, zorder=2
+        )
+        ax.add_patch(arrow)
+
         ax.text(coords[0] * 1.1, coords[1] * 1.1, f" {name}", fontsize=12, color=color)
 
     ax.set_xlabel("Pixels x")
@@ -68,6 +91,7 @@ def plot_2d_projections(projections):
     plt.title("Projections of Basis Vectors on Pixel Space")
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
+    plt.gca().set_aspect('equal', adjustable='box')
 
     return fig
 
