@@ -583,20 +583,14 @@ class FractalApp(QMainWindow):
         """Update the interface colors to match the colormap."""
         selector_color = self.colormap(0.5)
 
-        text_color = self.colormap(0.5)
-        background_color = self.colormap(0.0)
-        input_bg_color = self.colormap(0.1)
-        border_color = self.colormap(0.3)
-
-        # Convert RGBA to RGB
-        r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
-        r_text, g_text, b_text = rgba_to_rgb(text_color)
-        r_border, g_border, b_border = rgba_to_rgb(border_color)
-        r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(input_bg_color)
+        r_text, g_text, b_text = rgba_to_rgb(self.colormap(0.5))
+        r_bg, g_bg, b_bg = rgba_to_rgb(self.colormap(0.0))
+        r_border, g_border, b_border = rgba_to_rgb(self.colormap(0.3))
+        r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(self.colormap(0.1))
 
         color_variables = {
-            "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
             "r_text": r_text, "g_text": g_text, "b_text": b_text,
+            "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
             "r_border": r_border, "g_border": g_border, "b_border": b_border,
             "r_input_bg": r_input_bg, "g_input_bg": g_input_bg, "b_input_bg": b_input_bg,
         }
@@ -611,15 +605,11 @@ class FractalApp(QMainWindow):
         stylesheet = get_stylesheet().format(**color_variables)
         self.setStyleSheet(stylesheet)
 
-        # Update row and column labels to reflect their toggled state
-        for row in range(6):
-            label = self.findChild(QLabel, f"row_{row}")
-            if label:
-                label.setStyleSheet(self.toggled_style if self.row_toggled[row] else self.untoggled_style)
-        for col in range(3):
-            label = self.findChild(QLabel, f"col_{col}")
-            if label:
-                label.setStyleSheet(self.toggled_style if self.col_toggled[col] else self.untoggled_style)
+        # set new styles to all toggle buttons
+        for button in self.findChildren(QPushButton):
+            if button.isCheckable():
+                is_toggled = button.isChecked()
+                button.setStyleSheet(self.toggled_style if is_toggled else self.untoggled_style)
 
     def update_center(self):
         """Update the center (offset) of the fractal."""
