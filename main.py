@@ -64,7 +64,7 @@ def rgba_to_rgb(color):
 
 
 class FractalWorker(QThread):
-    finished = pyqtSignal(np.ndarray)
+    finished = pyqtSignal(tuple)
 
     def __init__(self, settings, resolution):
         super().__init__()
@@ -93,7 +93,7 @@ class FractalWorker(QThread):
         )
         end_time = time()
         logging.info(f"Fractal computation completed in {end_time - start_time:.2f} seconds. {sample_time - start_time:.2f} seconds for paramerters.")
-        self.finished.emit(escape_counts)
+        self.finished.emit((escape_counts, sampled_points))
 
 
 class FractalApp(QMainWindow):
@@ -109,8 +109,10 @@ class FractalApp(QMainWindow):
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
         self.current_escape_counts = None
+        self.current_sampled_points = None
         self.show_basis_vectors = False
         self.basis_vector_pixmap = None
+        self.show_parameter_info = False
 
         self.update_colormap("inferno")
         self.init_ui()
@@ -151,14 +153,16 @@ class FractalApp(QMainWindow):
         self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
         fractal_layout.addWidget(self.graphics_view)
 
-        # Variables for rectangle selection
+        # For rectangle selection
         self.start_pos = None
         self.selection_rect = None
         self.selection_rect_visual = None
-
-        # Enable mouse events for rectangle selection
         self.graphics_view.setMouseTracking(True)
         self.graphics_view.viewport().installEventFilter(self)
+
+        # For parameter hover
+        self.parameter_info_label = QLabel("Cursor Position: (x: 0, y: 0)")
+        fractal_layout.addWidget(self.parameter_info_label)
 
         return fractal_layout
 
@@ -209,7 +213,9 @@ class FractalApp(QMainWindow):
         # Visualization controls
         visualization_layout = QHBoxLayout()
         visualization_layout.addWidget(
-            self.create_toggle_button("Basis", "Show basis vector projection. (Shortcut: F4)", self.toggle_bais_vector_display))
+            self.create_toggle_button("Basis", "Show basis vector projection. (Shortcut: F4)", self.toggle_basis_vector_display))
+        visualization_layout.addWidget(
+            self.create_toggle_button("Parameters", "Show parameters on hover. (Shortcut: F4)", self.toggle_parameter_info_display))
         settings_layout.addLayout(visualization_layout)
 
         settings_group.setLayout(settings_layout)
@@ -577,7 +583,7 @@ class FractalApp(QMainWindow):
         self.colormap = colormaps.get_cmap(colormap_name)
         self.update_interface_color()
         if self.current_escape_counts is not None:
-            self.display_fractal(self.current_escape_counts)
+            self.display_fractal(self.current_escape_counts, self.current_sampled_points)
 
     def update_interface_color(self):
         """Update the interface colors to match the colormap."""
@@ -660,13 +666,13 @@ class FractalApp(QMainWindow):
         """Start fractal rendering in a separate thread."""
         if self.settings.escape_counts is not None:
             logging.info("Using previously rendered fractal...")
-            self.display_fractal(self.settings.escape_counts)
+            self.display_fractal(self.settings.escape_counts, self.settings.sampled_points)
             self.settings.escape_counts = None  # make historic settings changeable again
         else:
             logging.info("Rendering fractal...")
             self.dimensions = self.get_viewport_dimensions()
             self.worker = FractalWorker(self.settings, self.dimensions)
-            self.worker.finished.connect(self.display_fractal)
+            self.worker.finished.connect(lambda result: self.display_fractal(*result))  # unpack parameters
             self.worker.start()
 
         self.update_uov_inputs()
@@ -676,10 +682,11 @@ class FractalApp(QMainWindow):
         viewport_rect = self.graphics_view.viewport().rect()
         return (viewport_rect.width(), viewport_rect.height())
 
-    def display_fractal(self, escape_counts):
+    def display_fractal(self, escape_counts, sampled_points):
         """Convert fractal data to an image with colormap and display it."""
         logging.info("Displaying fractal...")
 
+        self.current_sampled_points = sampled_points
         self.current_escape_counts = escape_counts
         image_array = self.get_image_from_escape_counts(self.current_escape_counts)
         height, width, _ = image_array.shape
@@ -692,6 +699,7 @@ class FractalApp(QMainWindow):
 
         history_settings = deepcopy(self.settings)
         history_settings.escape_counts = escape_counts
+        history_settings.sampled_points = sampled_points
         self.history.append(history_settings)
 
         self.hande_basis_vector_display()
@@ -761,9 +769,12 @@ class FractalApp(QMainWindow):
                             self.settings.v[row] += perturbation[row]
         self.render_fractal()
 
-    def toggle_bais_vector_display(self):
+    def toggle_basis_vector_display(self):
         self.show_basis_vectors = not self.show_basis_vectors
         self.hande_basis_vector_display()
+
+    def toggle_parameter_info_display(self):
+        self.show_parameter_info = not self.show_parameter_info
 
     def hande_basis_vector_display(self):
         if self.basis_vector_pixmap:
@@ -922,7 +933,7 @@ class FractalApp(QMainWindow):
             else:
                 self.showFullScreen()
         elif event.key() == Qt.Key_F4:
-            self.toggle_bais_vector_display()
+            self.toggle_basis_vector_display()
 
     def save_settings(self):
         """Save the current fractal settings to a YAML file."""
@@ -972,7 +983,7 @@ class FractalApp(QMainWindow):
             label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
 
     def eventFilter(self, source, event):
-        """Handle mouse events for rectangle selection."""
+        """Handle mouse events for rectangle selection and hover."""
         if event.type() == event.MouseButtonPress and event.button() == Qt.LeftButton:
             self.start_pos = event.pos()
         elif event.type() == event.MouseMove and self.start_pos:
@@ -982,7 +993,27 @@ class FractalApp(QMainWindow):
             if self.selection_rect:
                 self.handle_selection()
                 self.start_pos = None
+
+        if source == self.graphics_view.viewport() and event.type() == event.MouseMove:
+            self.update_parameter_info_label(event)
+
         return super().eventFilter(source, event)
+
+    def update_parameter_info_label(self, event):
+        mouse_position = self.graphics_view.mapToScene(event.pos())
+        y, x = int(mouse_position.x()), int(mouse_position.y())
+
+        if self.current_sampled_points is not None:
+            shape = self.current_sampled_points.shape
+            print(shape, x, y)
+            if x < 0 or x >= shape[0] or y < 0 or y >= shape[1]:
+                self.parameter_info_label.setText(f"x: {x}, y: {y}")
+            else:
+                parameters = self.current_sampled_points[x, y]
+                c, z, p = parameters
+                self.parameter_info_label.setText(f"c: {c:.2}, z<sub>0</sub>: {z:.2}, p: {p:.2}")
+        else:
+            self.parameter_info_label.setText(f"x: {x}, y: {y}")
 
     def draw_selection_rectangle(self, start_pos, end_pos):
         """Draw the selection rectangle with aspect ratio constraint and boundary checks."""

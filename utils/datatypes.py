@@ -12,3 +12,4 @@ class FractalSettings:
     rotation: float
     scale: float
     escape_counts: np.ndarray | None = None
+    sampled_points: np.ndarray | None = None
