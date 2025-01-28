@@ -349,7 +349,7 @@ class FractalApp(QMainWindow):
         return colormap_widget
 
     def setup_uov_inputs(self):
-        """Create compact input fields for u, o, v vectors with toggleable labels."""
+        """Create compact input fields for u, o, v vectors with toggleable buttons."""
         uov_layout = QGridLayout()
         self.u_fields = []
         self.o_fields = []
@@ -357,31 +357,35 @@ class FractalApp(QMainWindow):
         self.row_toggled = {i: False for i in range(6)}  # Track toggled state for rows
         self.col_toggled = {i: False for i in range(3)}  # Track toggled state for columns
 
-        # Row labels with toggle behavior
+        # Row toggle buttons
         for row, label in enumerate(self.VECTOR_COMPONENT_NAMES):
-            row_label = QLabel(label)
-            row_label.setObjectName(f"row_{row}")  # Assign a unique objectName
-            row_label.setToolTip("Toggle to exempt from randomization.")
-            row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
-            row_label.setAlignment(Qt.AlignCenter)
-            row_label.mousePressEvent = lambda event, r=row: self.toggle_row(r)  # Bind toggle event
-            row_label.setFixedWidth(self.CONTROLLS_WIDTH // 5)
-            uov_layout.addWidget(row_label, row + 1, 0)  # First column for row labels
+            row_button = self.create_toggle_button(
+                label=label,
+                tooltip=f"Toggle to fix component {label}.",
+                callbacks=(
+                    lambda r=row: self.toggle_row_state(r, True),
+                    lambda r=row: self.toggle_row_state(r, False)
+                )
+            )
+            row_button.setFixedWidth(self.CONTROLLS_WIDTH // 5)
+            uov_layout.addWidget(row_button, row + 1, 0)  # First column for row toggles
 
-        # Column headers with toggle behavior
+        # Column toggle buttons
         column_labels = ["Top", "Center", "Right"]
         fields = [self.u_fields, self.o_fields, self.v_fields]
         values = [self.settings.u, self.settings.o, self.settings.v]
         for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
-            col_label = QLabel(header)
-            col_label.setObjectName(f"col_{col}")  # Assign a unique objectName
-            col_label.setToolTip("Toggle to exempt from randomization.")
-            col_label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
-            col_label.setAlignment(Qt.AlignCenter)
-            col_label.mousePressEvent = lambda event, c=col: self.toggle_column(c)  # Bind toggle event
-            uov_layout.addWidget(col_label, 0, col + 1)  # Column headers (shifted by 1)
+            col_button = self.create_toggle_button(
+                label=header,
+                tooltip=f"Toggle to fix the {header.lower()} point of the view plane.",
+                callbacks=(
+                    lambda c=col: self.toggle_column_state(c, True),
+                    lambda c=col: self.toggle_column_state(c, False)
+                )
+            )
+            uov_layout.addWidget(col_button, 0, col + 1)  # Column headers (shifted by 1)
 
-        # paramerters
+        # Parameters (fields)
         for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
             for row in range(6):
                 line_edit = QLineEdit(str(value[row]))
@@ -392,6 +396,16 @@ class FractalApp(QMainWindow):
                 field_list.append(line_edit)
 
         return uov_layout
+
+    def toggle_row_state(self, row, state):
+        """Toggle the state of a row."""
+        self.row_toggled[row] = state
+        logging.info(f"Row {row} toggled {'ON' if state else 'OFF'}")
+
+    def toggle_column_state(self, col, state):
+        """Toggle the state of a column."""
+        self.col_toggled[col] = state
+        logging.info(f"Column {col} toggled {'ON' if state else 'OFF'}")
 
     def setup_zoom_controls(self):
         """Set up zoom in and zoom out controls."""
