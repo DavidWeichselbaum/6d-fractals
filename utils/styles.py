@@ -44,14 +44,14 @@ def get_stylesheet():
     }}
     """
 
-def get_toggled_style():
-    return (
-        "color: rgb({r_toggled_text}, {g_toggled_text}, {b_toggled_text}); font-weight: bold;"
-        "background-color: rgb({r_toggled_bg}, {g_toggled_bg}, {b_toggled_bg}); "
-    )
-
 def get_untoggled_style():
     return (
-        "color: rgb({r_untoggled_text}, {g_untoggled_text}, {b_untoggled_text}); font-weight: normal;"
-        "background-color: rgb({r_untoggled_bg}, {g_untoggled_bg}, {b_untoggled_bg}); "
+        "color: rgb({r_text}, {g_text}, {b_text});"
+        "background-color: rgb({r_bg}, {g_bg}, {b_bg}); "
+    )
+
+def get_toggled_style():
+    return (
+        "color: rgb({r_bg}, {g_bg}, {b_bg}); "
+        "background-color: rgb({r_text}, {g_text}, {b_text});"
     )

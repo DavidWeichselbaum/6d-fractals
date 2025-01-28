@@ -574,50 +574,27 @@ class FractalApp(QMainWindow):
         input_bg_color = self.colormap(0.1)
         border_color = self.colormap(0.3)
 
-        untoggled_bg_color = self.colormap(0.0)
-        untoggled_text_color = self.colormap(0.3)
-
-        toggled_bg_color = self.colormap(0.3)
-        toggled_text_color = self.colormap(0.0)
-
         # Convert RGBA to RGB
         r_bg, g_bg, b_bg = rgba_to_rgb(background_color)
         r_text, g_text, b_text = rgba_to_rgb(text_color)
         r_border, g_border, b_border = rgba_to_rgb(border_color)
         r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(input_bg_color)
-        r_untoggled_bg, g_untoggled_bg, b_untoggled_bg = rgba_to_rgb(untoggled_bg_color)
-        r_untoggled_text, g_untoggled_text, b_untoggled_text = rgba_to_rgb(untoggled_text_color)
-        r_toggled_bg, g_toggled_bg, b_toggled_bg = rgba_to_rgb(toggled_bg_color)
-        r_toggled_text, g_toggled_text, b_toggled_text = rgba_to_rgb(toggled_text_color)
+
+        color_variables = {
+            "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
+            "r_text": r_text, "g_text": g_text, "b_text": b_text,
+            "r_border": r_border, "g_border": g_border, "b_border": b_border,
+            "r_input_bg": r_input_bg, "g_input_bg": g_input_bg, "b_input_bg": b_input_bg,
+        }
 
         # Selector rectangle
         selector_color_rgb = rgba_to_rgb(selector_color)
         self.selector_color = QColor(*selector_color_rgb)
 
-        # Save toggled and untoggled styles
-        self.toggled_style = get_toggled_style().format(
-            r_toggled_bg=r_toggled_bg, g_toggled_bg=g_toggled_bg, b_toggled_bg=b_toggled_bg,
-            r_toggled_text=r_toggled_text, g_toggled_text=g_toggled_text, b_toggled_text=b_toggled_text,
-        )
-        self.untoggled_style = get_untoggled_style().format(
-            r_untoggled_bg=r_untoggled_bg, g_untoggled_bg=g_untoggled_bg, b_untoggled_bg=b_untoggled_bg,
-            r_untoggled_text=r_untoggled_text, g_untoggled_text=g_untoggled_text, b_untoggled_text=b_untoggled_text,
-        )
-
-        # Variables for the stylesheet
-        variables = {
-            "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
-            "r_text": r_text, "g_text": g_text, "b_text": b_text,
-            "r_border": r_border, "g_border": g_border, "b_border": b_border,
-            "r_input_bg": r_input_bg, "g_input_bg": g_input_bg, "b_input_bg": b_input_bg,
-            "r_untoggled_bg": r_untoggled_bg, "g_untoggled_bg": g_untoggled_bg, "b_untoggled_bg": b_untoggled_bg,
-            "r_untoggled_text": r_untoggled_text, "g_untoggled_text": g_untoggled_text, "b_untoggled_text": b_untoggled_text,
-            "r_toggled_bg": r_toggled_bg, "g_toggled_bg": g_toggled_bg, "b_toggled_bg": b_toggled_bg,
-            "r_toggled_text": r_toggled_text, "g_toggled_text": g_toggled_text, "b_toggled_text": b_toggled_text,
-        }
-
-        # Apply the stylesheet
-        stylesheet = get_stylesheet().format(**variables)
+        # Set styles
+        self.toggled_style = get_toggled_style().format(**color_variables)
+        self.untoggled_style = get_untoggled_style().format(**color_variables)
+        stylesheet = get_stylesheet().format(**color_variables)
         self.setStyleSheet(stylesheet)
 
         # Update row and column labels to reflect their toggled state
