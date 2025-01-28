@@ -206,8 +206,40 @@ class FractalApp(QMainWindow):
         # Color controls
         settings_layout.addWidget(self.setup_colormap_dropdown())
 
+        # Visualization controls
+        visualization_layout = QHBoxLayout()
+        visualization_layout.addWidget(
+            self.create_toggle_button("Basis", "Show basis vector projection. (Shortcut: F4)", self.toggle_bais_vector_display))
+        settings_layout.addLayout(visualization_layout)
+
         settings_group.setLayout(settings_layout)
         return settings_group
+
+
+    def create_toggle_button(self, label, tooltip, callbacks):
+        """Create a reusable toggle button."""
+        toggle_button = QPushButton(label)
+        toggle_button.setCheckable(True)
+        toggle_button.setToolTip(tooltip)
+        toggle_button.clicked.connect(lambda: self.on_toggle_button_clicked(toggle_button, label, callbacks))
+        return toggle_button
+
+
+    def on_toggle_button_clicked(self, button, label, callbacks):
+        """Handle toggle button clicks."""
+        if isinstance(callbacks, tuple) and len(callbacks) == 2:
+            callback_checked, callback_unchecked = callbacks
+        else:
+            callback_checked, callback_unchecked = callbacks, callbacks
+
+        if button.isChecked():
+            logging.info(f"{label} toggled ON")
+            button.setStyleSheet(self.get_toggle_style(True))
+            callback_checked()
+        else:
+            logging.info(f"{label} toggled OFF")
+            button.setStyleSheet(self.get_toggle_style(False))
+            callback_unchecked()
 
     def create_movement_group(self):
         """Create the Movement group with zoom, move, rotation, and additional parameters."""
@@ -329,7 +361,7 @@ class FractalApp(QMainWindow):
         for row, label in enumerate(self.VECTOR_COMPONENT_NAMES):
             row_label = QLabel(label)
             row_label.setObjectName(f"row_{row}")  # Assign a unique objectName
-            row_label.setToolTip("Toogle to exempt from randomization.")
+            row_label.setToolTip("Toggle to exempt from randomization.")
             row_label.setStyleSheet(self.get_toggle_style(self.row_toggled[row]))
             row_label.setAlignment(Qt.AlignCenter)
             row_label.mousePressEvent = lambda event, r=row: self.toggle_row(r)  # Bind toggle event
@@ -343,7 +375,7 @@ class FractalApp(QMainWindow):
         for col, (header, field_list, value) in enumerate(zip(column_labels, fields, values)):
             col_label = QLabel(header)
             col_label.setObjectName(f"col_{col}")  # Assign a unique objectName
-            col_label.setToolTip("Toogle to exempt from randomization.")
+            col_label.setToolTip("Toggle to exempt from randomization.")
             col_label.setStyleSheet(self.get_toggle_style(self.col_toggled[col]))
             col_label.setAlignment(Qt.AlignCenter)
             col_label.mousePressEvent = lambda event, c=col: self.toggle_column(c)  # Bind toggle event
@@ -748,6 +780,10 @@ class FractalApp(QMainWindow):
                             self.settings.v[row] += perturbation[row]
         self.render_fractal()
 
+    def toggle_bais_vector_display(self):
+        self.show_basis_vectors = not self.show_basis_vectors
+        self.hande_basis_vector_display()
+
     def hande_basis_vector_display(self):
         if self.basis_vector_pixmap:
             self.graphics_scene.removeItem(self.basis_vector_pixmap)
@@ -905,8 +941,7 @@ class FractalApp(QMainWindow):
             else:
                 self.showFullScreen()
         elif event.key() == Qt.Key_F4:
-            self.show_basis_vectors = not self.show_basis_vectors
-            self.hande_basis_vector_display()
+            self.toggle_bais_vector_display()
 
     def save_settings(self):
         """Save the current fractal settings to a YAML file."""
