@@ -161,7 +161,8 @@ class FractalApp(QMainWindow):
         self.graphics_view.viewport().installEventFilter(self)
 
         # For parameter hover
-        self.parameter_info_label = QLabel("Cursor Position: (x: 0, y: 0)")
+        self.parameter_info_label = QLabel()
+        self.parameter_info_label.setVisible(False)
         fractal_layout.addWidget(self.parameter_info_label)
 
         return fractal_layout
@@ -775,6 +776,10 @@ class FractalApp(QMainWindow):
 
     def toggle_parameter_info_display(self):
         self.show_parameter_info = not self.show_parameter_info
+        if not self.show_parameter_info:
+            self.parameter_info_label.setVisible(False)
+        else:
+            self.parameter_info_label.setVisible(True)
 
     def hande_basis_vector_display(self):
         if self.basis_vector_pixmap:
@@ -1005,15 +1010,36 @@ class FractalApp(QMainWindow):
 
         if self.current_sampled_points is not None:
             shape = self.current_sampled_points.shape
-            print(shape, x, y)
             if x < 0 or x >= shape[0] or y < 0 or y >= shape[1]:
                 self.parameter_info_label.setText(f"x: {x}, y: {y}")
             else:
-                parameters = self.current_sampled_points[x, y]
-                c, z, p = parameters
-                self.parameter_info_label.setText(f"c: {c:.2}, z<sub>0</sub>: {z:.2}, p: {p:.2}")
+                parameter_info_string = self.get_parameter_info_string(x, y)
+                self.parameter_info_label.setText(parameter_info_string)
+
         else:
             self.parameter_info_label.setText(f"x: {x}, y: {y}")
+
+    def get_parameter_info_string(self, x, y):
+        parameters = self.current_sampled_points[x, y]
+
+        c, z, p = parameters
+        parameter_parts = [c.real, c.imag, z.real, z.imag, p.real, p.imag]
+
+        parameters_max = self.current_sampled_points.max(axis=(0, 1))
+        parameters_min = self.current_sampled_points.min(axis=(0, 1))
+        parameters_delta = parameters_max - parameters_min
+        c_delta, z_delta, p_delta = parameters_delta
+        delta_parts = [c_delta.real, c_delta.imag, z_delta.real, z_delta.imag, p_delta.real, p_delta.imag]
+
+        string = ''
+        for parameter, delta, name in zip(parameter_parts, delta_parts, self.VECTOR_COMPONENT_NAMES):
+            if delta == 0:
+                precision = 1
+            else:
+                precision = -int(np.floor(np.log10(np.abs(delta))))
+                precision += 2  # max 2 decimal difference between numbers on screen
+            string += f"{name}: {parameter:+.{precision}f}    "
+        return string
 
     def draw_selection_rectangle(self, start_pos, end_pos):
         """Draw the selection rectangle with aspect ratio constraint and boundary checks."""
