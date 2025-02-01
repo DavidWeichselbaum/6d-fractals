@@ -42,6 +42,9 @@ def get_stylesheet():
         subcontrol-position: top right;
         padding: 0 5px;
     }}
+    QLabel {{
+        border: none;
+    }}
     """
 
 def get_untoggled_style():

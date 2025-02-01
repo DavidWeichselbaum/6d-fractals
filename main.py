@@ -208,9 +208,6 @@ class FractalApp(QMainWindow):
         history_layout.addWidget(self.create_button("Reset", "Reset view (Shortcut: Home)", self.reset_view))
         settings_layout.addLayout(history_layout)
 
-        # Color controls
-        settings_layout.addWidget(self.setup_colormap_dropdown())
-
         # Visualization controls
         visualization_layout = QHBoxLayout()
         visualization_layout.addWidget(
@@ -218,6 +215,9 @@ class FractalApp(QMainWindow):
         visualization_layout.addWidget(
             self.create_toggle_button("Parameters", "Show parameters on hover. (Shortcut: F4)", self.toggle_parameter_info_display))
         settings_layout.addLayout(visualization_layout)
+
+        # Color controls
+        settings_layout.addLayout(self.setup_colormap_dropdown())
 
         settings_group.setLayout(settings_layout)
         return settings_group
@@ -268,7 +268,6 @@ class FractalApp(QMainWindow):
         # Add Center (Offset) fields
         center_layout = QHBoxLayout()
         center_label = QLabel("Center:")
-        center_label.setStyleSheet("border: none;")
         center_label.setAlignment(Qt.AlignRight)
         self.center_x_field = QLineEdit(str(self.settings.center[0]))
         self.center_x_field.setFixedWidth(self.INPUT_WIDTH)
@@ -286,7 +285,6 @@ class FractalApp(QMainWindow):
         # Add Scale field
         scale_layout = QHBoxLayout()
         scale_label = QLabel("Scale:")
-        scale_label.setStyleSheet("border: none;")
         scale_label.setAlignment(Qt.AlignRight)
         self.scale_field = QLineEdit(str(self.settings.scale))
         self.scale_field.setFixedWidth(self.INPUT_WIDTH)
@@ -299,7 +297,6 @@ class FractalApp(QMainWindow):
         # Add Rotation field
         rotation_layout = QHBoxLayout()
         rotation_label = QLabel("Rotation:")
-        rotation_label.setStyleSheet("border: none;")
         rotation_label.setAlignment(Qt.AlignRight)
         self.rotation_field = QLineEdit(str(self.settings.rotation))
         self.rotation_field.setFixedWidth(self.INPUT_WIDTH)
@@ -334,9 +331,8 @@ class FractalApp(QMainWindow):
         """Set up a dropdown menu for selecting colormaps with a label."""
         colormap_layout = QHBoxLayout()
 
-        # Create a borderless label for the colormap
+        # Create a label for the colormap
         colormap_label = QLabel("Colors:")
-        colormap_label.setStyleSheet("border: none;")
         colormap_label.setAlignment(Qt.AlignRight)
 
         # Create the dropdown menu for colormaps
@@ -349,11 +345,7 @@ class FractalApp(QMainWindow):
         # Add the label and dropdown to the layout
         colormap_layout.addWidget(colormap_label)
         colormap_layout.addWidget(colormap_dropdown)
-
-        # Create a container widget to return
-        colormap_widget = QWidget()
-        colormap_widget.setLayout(colormap_layout)
-        return colormap_widget
+        return colormap_layout
 
     def setup_uov_inputs(self):
         """Create compact input fields for u, o, v vectors with toggleable buttons."""
@@ -477,7 +469,6 @@ class FractalApp(QMainWindow):
         # Add displacement field
         displacement_layout = QHBoxLayout()
         displacement_label = QLabel("Distance:")
-        displacement_label.setStyleSheet("border: none;")
         displacement_label.setAlignment(Qt.AlignRight)
         self.displacement = QLineEdit("0.1")
         self.displacement.setFixedWidth(self.INPUT_WIDTH)
@@ -503,12 +494,10 @@ class FractalApp(QMainWindow):
         # Add headers for rows and columns
         for col, header in enumerate(headers):
             header_label = QLabel(header)
-            header_label.setStyleSheet("border: none;")
             header_label.setAlignment(Qt.AlignCenter)
             table_layout.addWidget(header_label, 0, col + 1)  # Top headers
 
             header_label = QLabel(header)
-            header_label.setStyleSheet("border: none;")
             header_label.setAlignment(Qt.AlignCenter)
             table_layout.addWidget(header_label, col + 1, 0)  # Left headers
 
@@ -528,7 +517,6 @@ class FractalApp(QMainWindow):
         # Add rotation amount field
         rotation_amount_layout = QHBoxLayout()
         rotation_amount_label = QLabel("Angle:")
-        rotation_amount_label.setStyleSheet("border: none;")
         rotation_amount_label.setAlignment(Qt.AlignRight)
         self.rotation_amount = QLineEdit("0.1")
         self.rotation_amount.setFixedWidth(self.INPUT_WIDTH)
