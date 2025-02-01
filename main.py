@@ -108,8 +108,14 @@ class FractalApp(QMainWindow):
         super().__init__()
         self.settings = deepcopy(initial_settings)
         self.history = [deepcopy(initial_settings)]
+        # Current view
         self.current_escape_counts = None
         self.current_sampled_points = None
+        # Rectangle selection
+        self.start_pos = None
+        self.selection_rect = None
+        self.selection_rect_visual = None
+        # Settings
         self.show_basis_vectors = False
         self.basis_vector_pixmap = None
         self.show_parameter_info = False
@@ -144,27 +150,23 @@ class FractalApp(QMainWindow):
         self.setCentralWidget(container)
 
     def setup_fractal_display(self):
-        fractal_layout = QVBoxLayout()
-
-        """Set up the fractal display area."""
+        # Fractal view
         self.graphics_view = QGraphicsView()
         self.graphics_scene = QGraphicsScene()
         self.graphics_view.setScene(self.graphics_scene)
         self.graphics_view.setRenderHints(self.graphics_view.renderHints() | Qt.SmoothTransformation)
-        fractal_layout.addWidget(self.graphics_view)
 
         # For rectangle selection
-        self.start_pos = None
-        self.selection_rect = None
-        self.selection_rect_visual = None
         self.graphics_view.setMouseTracking(True)
         self.graphics_view.viewport().installEventFilter(self)
 
         # For parameter hover
         self.parameter_info_label = QLabel()
         self.parameter_info_label.setVisible(False)
-        fractal_layout.addWidget(self.parameter_info_label)
 
+        fractal_layout = QVBoxLayout()
+        fractal_layout.addWidget(self.graphics_view)
+        fractal_layout.addWidget(self.parameter_info_label)
         return fractal_layout
 
     def setup_controls(self):
