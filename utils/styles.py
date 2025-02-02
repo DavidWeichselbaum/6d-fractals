@@ -50,14 +50,10 @@ def get_stylesheet():
     }}
     """
 
+
 def get_untoggled_style():
-    return (
-        "color: rgb({r_text}, {g_text}, {b_text});"
-        "background-color: rgb({r_bg}, {g_bg}, {b_bg}); "
-    )
+    return "color: rgb({r_text}, {g_text}, {b_text});" "background-color: rgb({r_bg}, {g_bg}, {b_bg}); "
+
 
 def get_toggled_style():
-    return (
-        "color: rgb({r_bg}, {g_bg}, {b_bg}); "
-        "background-color: rgb({r_text}, {g_text}, {b_text});"
-    )
+    return "color: rgb({r_bg}, {g_bg}, {b_bg}); " "background-color: rgb({r_text}, {g_text}, {b_text});"

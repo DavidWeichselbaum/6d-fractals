@@ -1,7 +1,5 @@
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QTreeWidget, QTreeWidgetItem
-)
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 
 class DebugTool(QMainWindow):

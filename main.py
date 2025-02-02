@@ -1,31 +1,40 @@
-import sys
 import logging
+import sys
 from copy import deepcopy
 from time import time
-from multiprocessing import Process, Queue
 
-import yaml
 import numpy as np
+import yaml
 from matplotlib import colormaps
 from PIL import Image
+from PyQt5.QtCore import QPointF, QRectF, Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QColor, QFontMetrics, QImage, QPen, QPixmap
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout,
-    QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox, QGroupBox,
-    QDialog, QMessageBox
+    QApplication,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QGraphicsScene,
+    QGraphicsView,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtGui import QFontMetrics
 
-from PyQt5.QtWidgets import QComboBox, QScrollArea
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
-from PyQt5.QtGui import QPixmap, QImage, QPen, QColor, QBrush
-
-from utils.utils import settings_to_dict, dict_to_settings
-from utils.parameters import sample_plane
-from utils.fractal import compute_fractal
 from utils.datatypes import FractalSettings
-from utils.styles import get_stylesheet, get_toggled_style, get_untoggled_style, get_font
+from utils.fractal import compute_fractal
+from utils.parameters import sample_plane
 from utils.plot_utils import get_basis_projection_image
-
+from utils.styles import get_font, get_stylesheet, get_toggled_style, get_untoggled_style
+from utils.utils import dict_to_settings, settings_to_dict
 
 LOG_PATH = "log.txt"
 DEFAULT_SAVE_PATH = "./saves"
@@ -89,10 +98,13 @@ class FractalWorker(QThread):
         escape_counts = compute_fractal(
             sampled_points,
             max_iterations=int(max_iterations),
-            escape_radius=ESCAPE_RADIUS
+            escape_radius=ESCAPE_RADIUS,
         )
         end_time = time()
-        logging.info(f"Fractal computation completed in {end_time - start_time:.2f} seconds. {sample_time - start_time:.2f} seconds for paramerters.")
+        logging.info(
+            f"Fractal computation completed in {end_time - start_time:.2f} seconds."
+            f"{sample_time - start_time:.2f} seconds for paramerters."
+        )
         self.finished.emit((escape_counts, sampled_points))
 
 
@@ -211,9 +223,19 @@ class FractalApp(QMainWindow):
         # Visualization controls
         visualization_layout = QHBoxLayout()
         visualization_layout.addWidget(
-            self.create_toggle_button("Basis", "Show basis vector projection. (Shortcut: F4)", self.toggle_basis_vector_display))
+            self.create_toggle_button(
+                "Basis",
+                "Show basis vector projection. (Shortcut: F4)",
+                self.toggle_basis_vector_display,
+            )
+        )
         visualization_layout.addWidget(
-            self.create_toggle_button("Parameters", "Show parameters on hover. (Shortcut: F4)", self.toggle_parameter_info_display))
+            self.create_toggle_button(
+                "Parameters",
+                "Show parameters on hover. (Shortcut: F4)",
+                self.toggle_parameter_info_display,
+            )
+        )
         settings_layout.addLayout(visualization_layout)
 
         # Color controls
@@ -261,13 +283,37 @@ class FractalApp(QMainWindow):
 
         # Add zoom and movement controls
         movement_layout.addWidget(self.create_button("-", "Zoom Out (Shortcut: E)", self.zoom_out), 0, 0)
-        movement_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
+        movement_layout.addWidget(
+            self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")),
+            0,
+            1,
+        )
         movement_layout.addWidget(self.create_button("+", "Zoom In (Shortcut: Q)", self.zoom_in), 0, 2)
-        movement_layout.addWidget(self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")), 1, 0)
-        movement_layout.addWidget(self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")), 1, 1)
-        movement_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
-        movement_layout.addWidget(self.create_button("↺", "Rotate CCW (Shortcut: R)", lambda: self.rotate("CCW")), 2, 0)
-        movement_layout.addWidget(self.create_button("↻", "Rotate CW (Shortcut: F)", lambda: self.rotate("CW")), 2, 2)
+        movement_layout.addWidget(
+            self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")),
+            1,
+            0,
+        )
+        movement_layout.addWidget(
+            self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")),
+            1,
+            1,
+        )
+        movement_layout.addWidget(
+            self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")),
+            1,
+            2,
+        )
+        movement_layout.addWidget(
+            self.create_button("↺", "Rotate CCW (Shortcut: R)", lambda: self.rotate("CCW")),
+            2,
+            0,
+        )
+        movement_layout.addWidget(
+            self.create_button("↻", "Rotate CW (Shortcut: F)", lambda: self.rotate("CW")),
+            2,
+            2,
+        )
 
         # Add Center (Offset) fields
         center_layout = QHBoxLayout()
@@ -324,8 +370,12 @@ class FractalApp(QMainWindow):
 
         # Randomize and Perturb Buttons
         randomize_perturb_layout = QHBoxLayout()
-        randomize_perturb_layout.addWidget(self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings))
-        randomize_perturb_layout.addWidget(self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings))
+        randomize_perturb_layout.addWidget(
+            self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings)
+        )
+        randomize_perturb_layout.addWidget(
+            self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings)
+        )
         parameters_layout.addLayout(randomize_perturb_layout)
 
         parameters_group.setLayout(parameters_layout)
@@ -367,8 +417,8 @@ class FractalApp(QMainWindow):
                 tooltip=f"Toggle to fix component {label}.",
                 callbacks=(
                     lambda r=row: self.toggle_row_state(r, True),
-                    lambda r=row: self.toggle_row_state(r, False)
-                )
+                    lambda r=row: self.toggle_row_state(r, False),
+                ),
             )
             row_button.setFixedWidth(self.CONTROLLS_WIDTH // 5)
             uov_layout.addWidget(row_button, row + 1, 0)  # First column for row toggles
@@ -383,8 +433,8 @@ class FractalApp(QMainWindow):
                 tooltip=f"Toggle to fix the {header.lower()} point of the view plane.",
                 callbacks=(
                     lambda c=col: self.toggle_column_state(c, True),
-                    lambda c=col: self.toggle_column_state(c, False)
-                )
+                    lambda c=col: self.toggle_column_state(c, False),
+                ),
             )
             uov_layout.addWidget(col_button, 0, col + 1)  # Column headers (shifted by 1)
 
@@ -422,10 +472,26 @@ class FractalApp(QMainWindow):
     def setup_move_controls(self):
         """Set up move controls in an arrow key layout."""
         move_layout = QGridLayout()
-        move_layout.addWidget(self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")), 0, 1)
-        move_layout.addWidget(self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")), 1, 0)
-        move_layout.addWidget(self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")), 1, 1)
-        move_layout.addWidget(self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")), 1, 2)
+        move_layout.addWidget(
+            self.create_button("↑", "Move Up (Shortcut: W)", lambda: self.move("W")),
+            0,
+            1,
+        )
+        move_layout.addWidget(
+            self.create_button("←", "Move Left (Shortcut: A)", lambda: self.move("A")),
+            1,
+            0,
+        )
+        move_layout.addWidget(
+            self.create_button("↓", "Move Down (Shortcut: S)", lambda: self.move("S")),
+            1,
+            1,
+        )
+        move_layout.addWidget(
+            self.create_button("→", "Move Right (Shortcut: D)", lambda: self.move("D")),
+            1,
+            2,
+        )
         return move_layout
 
     def setup_rotate_controls(self):
@@ -588,10 +654,18 @@ class FractalApp(QMainWindow):
         r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(self.colormap(0.1))
 
         color_variables = {
-            "r_text": r_text, "g_text": g_text, "b_text": b_text,
-            "r_bg": r_bg, "g_bg": g_bg, "b_bg": b_bg,
-            "r_border": r_border, "g_border": g_border, "b_border": b_border,
-            "r_input_bg": r_input_bg, "g_input_bg": g_input_bg, "b_input_bg": b_input_bg,
+            "r_text": r_text,
+            "g_text": g_text,
+            "b_text": b_text,
+            "r_bg": r_bg,
+            "g_bg": g_bg,
+            "b_bg": b_bg,
+            "r_border": r_border,
+            "g_border": g_border,
+            "b_border": b_border,
+            "r_input_bg": r_input_bg,
+            "g_input_bg": g_input_bg,
+            "b_input_bg": b_input_bg,
         }
 
         # Selector rectangle
@@ -867,19 +941,34 @@ class FractalApp(QMainWindow):
 
         # Update the UI and re-render
         self.render_fractal()
-        logging.info(f"Rotated around axis ({self.VECTOR_COMPONENT_NAMES[axis1_index]}, {self.VECTOR_COMPONENT_NAMES[axis2_index]}) by {angle_radians:.4f} radians.")
+        logging.info(
+            f"Rotated around axis ({self.VECTOR_COMPONENT_NAMES[axis1_index]}, "
+            f"{self.VECTOR_COMPONENT_NAMES[axis2_index]}) by {angle_radians:.4f} radians."
+        )
 
     def move(self, direction):
         logging.info(f"Moving {direction}...")
         step = self.settings.scale * 0.1
         if direction == "W":
-            self.settings.center = (self.settings.center[0], self.settings.center[1] - step)
+            self.settings.center = (
+                self.settings.center[0],
+                self.settings.center[1] - step,
+            )
         elif direction == "S":
-            self.settings.center = (self.settings.center[0], self.settings.center[1] + step)
+            self.settings.center = (
+                self.settings.center[0],
+                self.settings.center[1] + step,
+            )
         elif direction == "A":
-            self.settings.center = (self.settings.center[0] - step, self.settings.center[1])
+            self.settings.center = (
+                self.settings.center[0] - step,
+                self.settings.center[1],
+            )
         elif direction == "D":
-            self.settings.center = (self.settings.center[0] + step, self.settings.center[1])
+            self.settings.center = (
+                self.settings.center[0] + step,
+                self.settings.center[1],
+            )
         self.render_fractal()
 
     def rotate(self, direction):
@@ -893,7 +982,6 @@ class FractalApp(QMainWindow):
     def on_key(self, event):
         """Handle key press events."""
         logging.info(f"Key pressed: {event.key()}")
-        step = self.settings.scale * 0.1
         if event.key() == Qt.Key_Escape:
             exit()
         elif event.key() == Qt.Key_W:
@@ -1002,7 +1090,7 @@ class FractalApp(QMainWindow):
 
         if self.current_sampled_points is not None:
             shape = self.current_sampled_points.shape
-            if  x >= 0 and x < shape[0] and y >= 0 and y < shape[1]:
+            if x >= 0 and x < shape[0] and y >= 0 and y < shape[1]:
                 string = self.get_parameter_info_string(x, y)
 
         if not string:
@@ -1030,9 +1118,16 @@ class FractalApp(QMainWindow):
         parameters_min = self.current_sampled_points.min(axis=(0, 1))
         parameters_delta = parameters_max - parameters_min
         c_delta, z_delta, p_delta = parameters_delta
-        delta_parts = [c_delta.real, c_delta.imag, z_delta.real, z_delta.imag, p_delta.real, p_delta.imag]
+        delta_parts = [
+            c_delta.real,
+            c_delta.imag,
+            z_delta.real,
+            z_delta.imag,
+            p_delta.real,
+            p_delta.imag,
+        ]
 
-        string = ''
+        string = ""
         for parameter, delta, name in zip(parameter_parts, delta_parts, self.VECTOR_COMPONENT_NAMES):
             if delta == 0:
                 precision = 1
@@ -1074,7 +1169,6 @@ class FractalApp(QMainWindow):
         if not scene_rect.contains(start_scene) or not scene_rect.contains(constrained_end_scene):
             return
 
-
         # Create and display the selection rectangle
         self.selection_rect = QRectF(constrained_start_scene, constrained_end_scene)
         self.selection_rect_visual = self.graphics_scene.addRect(self.selection_rect, QPen(self.selector_color, 2))
@@ -1105,11 +1199,11 @@ class FractalApp(QMainWindow):
 
         resolution = self.dimensions
         cx_normalized = (cx / self.graphics_scene.sceneRect().width() - 0.5) * resolution[0] / resolution[1]
-        cy_normalized = (cy / self.graphics_scene.sceneRect().height() - 0.5)
+        cy_normalized = cy / self.graphics_scene.sceneRect().height() - 0.5
 
         self.settings.center = (
             self.settings.center[0] + cx_normalized * self.settings.scale,
-            self.settings.center[1] + cy_normalized * self.settings.scale
+            self.settings.center[1] + cy_normalized * self.settings.scale,
         )
         self.settings.scale *= min(width_pixels / resolution[0], height_pixels / resolution[1])
 
@@ -1130,7 +1224,7 @@ class FractalApp(QMainWindow):
         if not file_path:
             return
 
-        if not file_path.endswith('.png') or file_path.endswith('.jpg'):
+        if not file_path.endswith(".png") or file_path.endswith(".jpg"):
             file_path += ".png"
 
         resolution = self.dimensions

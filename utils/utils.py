@@ -26,4 +26,3 @@ def dict_to_settings(settings_dict):
         rotation=settings_dict["rotation"],
         scale=settings_dict["scale"],
     )
-

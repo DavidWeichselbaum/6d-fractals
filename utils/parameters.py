@@ -1,11 +1,10 @@
 import numpy as np
 
-import numpy as np
-
 
 def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0, resolution=(500, 500)):
     """
-    Sample a 2D plane in R^2n defined by three points: u, v, and o (origin point) and convert them to a complex plane in R^n.
+    Sample a 2D plane in R^2n defined by three points: u, v, and o (origin point)
+    and convert them to a complex plane in R^n.
     """
     w, h = resolution
     x, y = center
@@ -22,8 +21,7 @@ def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0, resolution
     S, T = np.meshgrid(s, t)
 
     # Rotate, scale, translate
-    rotation_matrix = np.array([[np.cos(rotation), -np.sin(rotation)],
-                                 [np.sin(rotation),  np.cos(rotation)]])
+    rotation_matrix = np.array([[np.cos(rotation), -np.sin(rotation)], [np.sin(rotation), np.cos(rotation)]])
     points = np.stack([S.ravel(), T.ravel()])  # Shape (2, N)
     rotated_points = rotation_matrix @ points
     S = rotated_points[0, :].reshape(S.shape) * scale + x

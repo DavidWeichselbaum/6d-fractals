@@ -1,14 +1,11 @@
 import sys
-import yaml
+from io import BytesIO
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch
 import numpy as np
-from io import BytesIO
-from PIL import Image
+import yaml
 from matplotlib.patches import FancyArrowPatch
-
-from utils.datatypes import FractalSettings
+from PIL import Image
 
 
 def project_to_2d(v, o, u, target_vector):
@@ -17,10 +14,7 @@ def project_to_2d(v, o, u, target_vector):
     p2 = u - o
 
     # Form the dot product matrix M (Gram matrix)
-    M = np.array([
-        [np.dot(p1, p1), np.dot(p1, p2)],
-        [np.dot(p2, p1), np.dot(p2, p2)]
-    ])
+    M = np.array([[np.dot(p1, p1), np.dot(p1, p2)], [np.dot(p2, p1), np.dot(p2, p2)]])
 
     # Center the target vector relative to the plane origin
     target_prime = target_vector - o
@@ -36,9 +30,7 @@ def project_to_2d(v, o, u, target_vector):
 def project_basis_to_2d(v, o, u):
     basis_vectors = np.eye(6)
     names = ["ca", "cb", "za", "zb", "pa", "pb"]
-    projections = {
-        names[i]: project_to_2d(v, o, u, basis_vectors[i]) for i in range(6)
-    }
+    projections = {names[i]: project_to_2d(v, o, u, basis_vectors[i]) for i in range(6)}
     return projections
 
 
@@ -70,22 +62,30 @@ def plot_2d_projections(projections):
         line_end = end - offset
 
         ax.plot(
-            [line_start[0], line_end[0]], [line_start[1], line_end[1]],
-            linestyle=linestyle, color=color, linewidth=2, zorder=1
+            [line_start[0], line_end[0]],
+            [line_start[1], line_end[1]],
+            linestyle=linestyle,
+            color=color,
+            linewidth=2,
+            zorder=1,
         )
         arrow = FancyArrowPatch(
-            start, end,
-            arrowstyle='-|>', color=color,
-            mutation_scale=50, linewidth=0, zorder=2
+            start,
+            end,
+            arrowstyle="-|>",
+            color=color,
+            mutation_scale=50,
+            linewidth=0,
+            zorder=2,
         )
         ax.add_patch(arrow)
 
         # ax.text(coords[0] * 1.1, coords[1] * 1.1, f" {name}", fontsize=12, color=color)
 
-    ax.axis('off')
+    ax.axis("off")
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
-    plt.gca().set_aspect('equal', adjustable='box')
+    plt.gca().set_aspect("equal", adjustable="box")
 
     return fig
 
