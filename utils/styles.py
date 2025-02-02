@@ -45,6 +45,9 @@ def get_stylesheet():
     QLabel {{
         border: none;
     }}
+    QLabel#hoverLabel {{
+        border: 1px solid rgb({r_border}, {g_border}, {b_border});
+    }}
     """
 
 def get_untoggled_style():

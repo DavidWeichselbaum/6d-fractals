@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGridLayout, QFileDialog, QLineEdit, QLabel, QCheckBox, QGroupBox,
     QDialog, QMessageBox
 )
-from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QFontMetrics
 
 from PyQt5.QtWidgets import QComboBox, QScrollArea
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QRectF, QPointF
@@ -144,6 +144,9 @@ class FractalApp(QMainWindow):
         controls_layout = self.setup_controls()
         main_layout.addWidget(controls_layout)
 
+        # Parameter hover
+        self.setup_parameter_info()
+
         # Main widget
         container = QWidget()
         container.setLayout(main_layout)
@@ -160,13 +163,8 @@ class FractalApp(QMainWindow):
         self.graphics_view.setMouseTracking(True)
         self.graphics_view.viewport().installEventFilter(self)
 
-        # For parameter hover
-        self.parameter_info_label = QLabel()
-        self.parameter_info_label.setVisible(False)
-
         fractal_layout = QVBoxLayout()
         fractal_layout.addWidget(self.graphics_view)
-        fractal_layout.addWidget(self.parameter_info_label)
         return fractal_layout
 
     def setup_controls(self):
@@ -224,7 +222,6 @@ class FractalApp(QMainWindow):
         settings_group.setLayout(settings_layout)
         return settings_group
 
-
     def create_toggle_button(self, label, tooltip, callbacks):
         """Create a reusable toggle button."""
         toggle_button = QPushButton(label)
@@ -233,6 +230,11 @@ class FractalApp(QMainWindow):
         toggle_button.clicked.connect(lambda: self.on_toggle_button_clicked(toggle_button, label, callbacks))
         return toggle_button
 
+    def setup_parameter_info(self):
+        self.parameter_info_label = QLabel(self)
+        self.parameter_info_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.parameter_info_label.setVisible(False)
+        self.parameter_info_label.setObjectName("hoverLabel")
 
     def on_toggle_button_clicked(self, button, label, callbacks):
         """Handle toggle button clicks."""
@@ -766,10 +768,6 @@ class FractalApp(QMainWindow):
 
     def toggle_parameter_info_display(self):
         self.show_parameter_info = not self.show_parameter_info
-        if not self.show_parameter_info:
-            self.parameter_info_label.setVisible(False)
-        else:
-            self.parameter_info_label.setVisible(True)
 
     def hande_basis_vector_display(self):
         if self.basis_vector_pixmap:
@@ -995,19 +993,32 @@ class FractalApp(QMainWindow):
         return super().eventFilter(source, event)
 
     def update_parameter_info_label(self, event):
+        if not self.show_parameter_info:
+            return
+
         mouse_position = self.graphics_view.mapToScene(event.pos())
         y, x = int(mouse_position.x()), int(mouse_position.y())
+        string = None
 
         if self.current_sampled_points is not None:
             shape = self.current_sampled_points.shape
-            if x < 0 or x >= shape[0] or y < 0 or y >= shape[1]:
-                self.parameter_info_label.setText(f"x: {x}, y: {y}")
-            else:
-                parameter_info_string = self.get_parameter_info_string(x, y)
-                self.parameter_info_label.setText(parameter_info_string)
+            if  x >= 0 and x < shape[0] and y >= 0 and y < shape[1]:
+                string = self.get_parameter_info_string(x, y)
 
+        if not string:
+            self.parameter_info_label.setVisible(False)
+            return
         else:
-            self.parameter_info_label.setText(f"x: {x}, y: {y}")
+            self.parameter_info_label.setVisible(True)
+
+        self.parameter_info_label.setText(string)
+
+        font_metrics = QFontMetrics(self.parameter_info_label.font())
+        text_width = font_metrics.horizontalAdvance(self.parameter_info_label.text())
+        self.parameter_info_label.setFixedWidth(text_width)
+
+        self.parameter_info_label.move(y + 10, x + 10)
+        self.parameter_info_label.raise_()
 
     def get_parameter_info_string(self, x, y):
         parameters = self.current_sampled_points[x, y]
