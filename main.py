@@ -62,9 +62,9 @@ mandelbrot_settings = FractalSettings(
     u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
     o=np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
     v=np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
-    center=(0, 0),
+    center=(-0.5, 0),
     rotation=0,
-    scale=4.0,
+    scale=2.5,
 )
 
 
