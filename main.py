@@ -134,7 +134,7 @@ class FractalApp(QMainWindow):
 
         self.update_colormap("inferno")
         self.init_ui()
-        self.render_fractal()
+        self.reset_view()
 
     def init_ui(self):
         self.setWindowTitle("6D Fractal Explorer")
@@ -163,6 +163,13 @@ class FractalApp(QMainWindow):
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
+
+    def resizeEvent(self, event):
+        new_size = event.size()
+        logging.info(f"Resizing to width: {new_size.width()}, height: {new_size.height()}")
+        if hasattr(self, "graphics_view"):
+            self.render_fractal()
+        super().resizeEvent(event)
 
     def setup_fractal_display(self):
         # Fractal view
