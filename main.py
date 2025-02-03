@@ -115,6 +115,10 @@ class FractalApp(QMainWindow):
     CONTROLLS_AREA_WIDTH = CONTROLLS_WIDTH + INPUT_WIDTH // 2
     VECTOR_COMPONENT_NAMES = ["cₐ", "cᵦ", "zₐ", "zᵦ", "pₐ", "pᵦ"]
     VECTOR_COMPONENT_NAME_INDICES = {name: i for i, name in enumerate(VECTOR_COMPONENT_NAMES)}
+    RANDOM_MEAN_DEFAULT = 0.0
+    RANDOM_STD_DEFAULT = 1.0
+    PERTURB_MEAN_DEFAULT = 0.0
+    PERTURB_STD_DEFAULT = 0.1
 
     def __init__(self, initial_settings):
         super().__init__()
@@ -194,6 +198,7 @@ class FractalApp(QMainWindow):
         controls_layout.addWidget(self.create_translation_group(), alignment=Qt.AlignTop)
         controls_layout.addWidget(self.create_rotation_group(), alignment=Qt.AlignTop)
         controls_layout.addWidget(self.create_parameters_group(), alignment=Qt.AlignTop)
+        controls_layout.addWidget(self.create_randomize_group(), alignment=Qt.AlignTop)
         controls_layout.addStretch()
 
         # Create a scroll area for the controls
@@ -375,18 +380,45 @@ class FractalApp(QMainWindow):
         parameters_layout = QVBoxLayout()
         parameters_layout.addLayout(self.setup_uov_inputs())
 
-        # Randomize and Perturb Buttons
-        randomize_perturb_layout = QHBoxLayout()
-        randomize_perturb_layout.addWidget(
-            self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings)
-        )
-        randomize_perturb_layout.addWidget(
-            self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings)
-        )
-        parameters_layout.addLayout(randomize_perturb_layout)
-
         parameters_group.setLayout(parameters_layout)
         return parameters_group
+
+    def create_randomize_group(self):
+        randomize_group = QGroupBox("Randomize")
+        randomize_group.setToolTip("Change Points randomly.")
+        randomize_group.setMaximumWidth(self.CONTROLLS_WIDTH)
+        randomize_layout = QVBoxLayout()
+
+        randomization_input_layout = QHBoxLayout()
+        randomization_input_layout.addWidget(
+            self.create_button("Randomize", "Randomize Settings (Shortcut: X)", self.randomize_settings)
+        )
+        self.mean_random_input = QLineEdit(str(self.RANDOM_MEAN_DEFAULT))
+        self.mean_random_input.setFixedWidth(self.INPUT_WIDTH)
+        self.mean_random_input.returnPressed.connect(self.randomize_settings)
+        randomization_input_layout.addWidget(self.mean_random_input)
+        self.std_random_input = QLineEdit(str(self.RANDOM_STD_DEFAULT))
+        self.std_random_input.setFixedWidth(self.INPUT_WIDTH)
+        self.std_random_input.returnPressed.connect(self.randomize_settings)
+        randomization_input_layout.addWidget(self.std_random_input)
+        randomize_layout.addLayout(randomization_input_layout)
+
+        perturbation_input_layout = QHBoxLayout()
+        perturbation_input_layout.addWidget(
+            self.create_button("Perturb", "Perturb Settings (Shortcut: Z)", self.perturb_settings)
+        )
+        self.mean_perturb_input = QLineEdit(str(self.PERTURB_MEAN_DEFAULT))
+        self.mean_perturb_input.setFixedWidth(self.INPUT_WIDTH)
+        self.mean_perturb_input.returnPressed.connect(self.perturb_settings)
+        perturbation_input_layout.addWidget(self.mean_perturb_input)
+        self.std_perturb_input = QLineEdit(str(self.PERTURB_STD_DEFAULT))
+        self.std_perturb_input.setFixedWidth(self.INPUT_WIDTH)
+        self.std_perturb_input.returnPressed.connect(self.perturb_settings)
+        perturbation_input_layout.addWidget(self.std_perturb_input)
+        randomize_layout.addLayout(perturbation_input_layout)
+
+        randomize_group.setLayout(randomize_layout)
+        return randomize_group
 
     def setup_colormap_dropdown(self):
         """Set up a dropdown menu for selecting colormaps with a label."""
@@ -814,10 +846,17 @@ class FractalApp(QMainWindow):
         self.render_fractal()
 
     def randomize_settings(self):
-        logging.info("Randomizing fractal settings...")
+        try:
+            mean = float(self.mean_random_input.text())
+            std = float(self.std_random_input.text())
+        except ValueError:
+            logging.warning("Invalid input for randomization mean or std. Using defaults.")
+            mean, std = self.RANDOM_MEAN_DEFAULT, self.RANDOM_STD_DEFAULT
+
+        logging.info(f"Randomizing settings with mean={mean}, std={std}...")
         for col in range(3):
             if not self.col_toggled[col]:  # Column is not toggled
-                new_values = np.random.normal(size=6)
+                new_values = np.random.normal(loc=mean, scale=std, size=6)
                 for row in range(6):
                     if not self.row_toggled[row]:  # Row is not toggled
                         if col == 0:  # u
@@ -829,10 +868,17 @@ class FractalApp(QMainWindow):
         self.render_fractal()
 
     def perturb_settings(self):
-        logging.info("Perturbing fractal settings...")
+        try:
+            mean = float(self.mean_perturb_input.text())
+            std = float(self.std_perturb_input.text())
+        except ValueError:
+            logging.warning("Invalid input for perturbation mean or std. Using defaults.")
+            mean, std = self.PERTURB_MEAN_DEFAULT, self.PERTURB_STD_DEFAULT
+
+        logging.info(f"Perturbing settings with mean={mean}, std={std}...")
         for col in range(3):
             if not self.col_toggled[col]:  # Column is not toggled
-                perturbation = np.random.normal(scale=0.05, size=6)
+                perturbation = np.random.normal(loc=mean, scale=std, size=6)
                 for row in range(6):
                     if not self.row_toggled[row]:  # Row is not toggled
                         if col == 0:  # u
@@ -990,7 +1036,10 @@ class FractalApp(QMainWindow):
         """Handle key press events."""
         logging.info(f"Key pressed: {event.key()}")
         if event.key() == Qt.Key_Escape:
-            exit()
+            if self.start_pos:
+                self.abort_rectangle_selection()
+            else:
+                exit()
         elif event.key() == Qt.Key_W:
             self.move("W")
         elif event.key() == Qt.Key_S:
@@ -1179,6 +1228,13 @@ class FractalApp(QMainWindow):
         # Create and display the selection rectangle
         self.selection_rect = QRectF(constrained_start_scene, constrained_end_scene)
         self.selection_rect_visual = self.graphics_scene.addRect(self.selection_rect, QPen(self.selector_color, 2))
+
+    def abort_rectangle_selection(self):
+        self.start_pos = None
+        self.selection_rect = None
+        if self.selection_rect_visual:
+            self.graphics_scene.removeItem(self.selection_rect_visual)
+        self.selection_rect_visual = None
 
     def handle_selection(self):
         """Handle rectangle selection to adjust the fractal view."""

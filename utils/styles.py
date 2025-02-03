@@ -2,7 +2,7 @@ from PyQt5.QtGui import QFont
 
 
 def get_font():
-    return QFont("FreeSans", 12)
+    return QFont("FreeSans", 11)
 
 
 def get_stylesheet():
