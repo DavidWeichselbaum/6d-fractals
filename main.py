@@ -28,6 +28,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from rich.logging import RichHandler
+from rich.traceback import install as install_rich_traceback
 
 from utils.cli_utils import parse_args
 from utils.datatypes import FractalSettings
@@ -44,13 +46,13 @@ START_ITERATIONS = 100
 ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
 
+install_rich_traceback()
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler(sys.stdout)
+console_handler = RichHandler(rich_tracebacks=True)
 console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-console_handler.setFormatter(console_formatter)
+
 file_handler = logging.FileHandler(LOG_PATH)
 file_handler.setLevel(logging.INFO)
 file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -642,7 +644,6 @@ class FractalApp(QMainWindow):
         """Update u, o, v vectors from input fields and re-render."""
         try:
             logging.info(f"Updated u, o, v vectors from u={self.settings.u}, o={self.settings.o}, v={self.settings.v}")
-            logging.warning(self.u_fields == self.o_fields)
             # Update settings.u, settings.o, settings.v based on input
             self.settings.u = np.array([float(field.text()) for field in self.u_fields])
             self.settings.o = np.array([float(field.text()) for field in self.o_fields])
@@ -1035,7 +1036,6 @@ class FractalApp(QMainWindow):
 
     def on_key(self, event):
         """Handle key press events."""
-        logging.info(f"Key pressed: {event.key()}")
         if event.key() == Qt.Key_Escape:
             if self.start_pos:
                 self.abort_rectangle_selection()

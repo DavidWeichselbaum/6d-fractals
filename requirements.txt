@@ -4,3 +4,4 @@ numba==0.60.0
 PyQt5==5.15.11
 PyYAML==6.0.2
 pillow==11.0.0
+rich==13.9.4
