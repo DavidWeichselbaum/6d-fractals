@@ -1331,7 +1331,7 @@ class FractalApp(QMainWindow):
     def render_and_save_fractal_pil(self, file_path, resolution):
         logging.info(f"Exporting fractal to {file_path} at resolution {resolution}...")
         self.worker = FractalWorker(self.settings, resolution)
-        self.worker.finished.connect(lambda escape_counts: self.save_image(escape_counts, file_path))
+        self.worker.finished.connect(lambda escape_counts: self.save_image(self.current_escape_counts, file_path))
         self.worker.start()
 
     def save_image(self, escape_counts, file_path):
