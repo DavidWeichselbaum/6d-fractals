@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+from utils.cli_utils import parse_args
 from utils.datatypes import FractalSettings
 from utils.fractal import compute_fractal
 from utils.parameters import sample_plane
@@ -58,7 +59,7 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 
-mandelbrot_settings = FractalSettings(
+default_settings = FractalSettings(
     u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
     o=np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
     v=np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
@@ -103,7 +104,7 @@ class FractalWorker(QThread):
         end_time = time()
         logging.info(
             f"Fractal computation completed in {end_time - start_time:.2f} seconds."
-            f"{sample_time - start_time:.2f} seconds for paramerters."
+            f" {sample_time - start_time:.2f} seconds for paramerters."
         )
         self.finished.emit((escape_counts, sampled_points))
 
@@ -120,10 +121,10 @@ class FractalApp(QMainWindow):
     PERTURB_MEAN_DEFAULT = 0.0
     PERTURB_STD_DEFAULT = 0.1
 
-    def __init__(self, initial_settings):
+    def __init__(self, args):
         super().__init__()
-        self.settings = deepcopy(initial_settings)
-        self.history = [deepcopy(initial_settings)]
+        self.load_settings(args.load)
+        self.history = [deepcopy(self.settings)]
         # Current view
         self.current_escape_counts = None
         self.current_sampled_points = None
@@ -220,7 +221,7 @@ class FractalApp(QMainWindow):
 
         # File controls: Load and Save
         file_layout = QHBoxLayout()
-        file_layout.addWidget(self.create_button("Load", "Load settings from a file", self.load_settings))
+        file_layout.addWidget(self.create_button("Load", "Load settings from a file", self.load_settings_dialogue))
         file_layout.addWidget(self.create_button("Save", "Save current settings to a file", self.save_settings))
         file_layout.addWidget(self.create_button("Export", "Export fractal as an image", self.export_fractal))
 
@@ -1088,7 +1089,7 @@ class FractalApp(QMainWindow):
                 yaml.dump(settings_dict, file, default_flow_style=False)
             logging.info(f"Settings saved to {file_path}")
 
-    def load_settings(self):
+    def load_settings_dialogue(self):
         """Load fractal settings from a YAML file."""
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
@@ -1098,12 +1099,18 @@ class FractalApp(QMainWindow):
             "YAML Files (*.yaml);;All Files (*)",
             options=options,
         )
-        if file_path:
+        self.load_settings(file_path)
+        self.render_fractal()
+
+    def load_settings(self, file_path):
+        try:
             with open(file_path, "r") as file:
                 settings_dict = yaml.safe_load(file)
                 self.settings = dict_to_settings(settings_dict)
             logging.info(f"Settings loaded from {file_path}")
-            self.render_fractal()
+        except BaseException as error:
+            logging.error(f"Could not load settings due to: {error}. Loading default.")
+            self.settings = default_settings
 
     def toggle_row(self, row):
         """Toggle the state of a row."""
@@ -1335,12 +1342,8 @@ class FractalApp(QMainWindow):
 
 
 if __name__ == "__main__":
+    args = parse_args()
     app = QApplication(sys.argv)
-    main_window = FractalApp(mandelbrot_settings)
+    main_window = FractalApp(args)
     main_window.show()
-
-    # from utils.debug import DebugTool
-    # debug_tool = DebugTool()
-    # debug_tool.show()
-
     sys.exit(app.exec())
