@@ -36,3 +36,13 @@ def sample_plane(u, o, v, center=(0.0, 0.0), rotation=0.0, scale=4.0, resolution
     complex_points = points[..., ::2] + 1j * points[..., 1::2]
 
     return complex_points
+
+
+def get_max_iterattions(base, growth, scale):
+    iterations = base + growth * np.log(1 / scale)
+    return iterations
+
+
+def get_base_iterations(iterations, growth, scale):
+    base = iterations - growth * np.log(1 / scale)
+    return base

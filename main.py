@@ -31,19 +31,16 @@ from PyQt5.QtWidgets import (
 from rich.logging import RichHandler
 from rich.traceback import install as install_rich_traceback
 
-from utils.cli_utils import parse_args
-from utils.datatypes import FractalSettings
+from utils.cli import parse_args
 from utils.fractal import compute_fractal
-from utils.parameters import sample_plane
-from utils.plot_utils import get_basis_projection_image
+from utils.parameters import get_base_iterations, get_max_iterattions, sample_plane
+from utils.plot import get_basis_projection_image
+from utils.settings import default_settings, dict_to_settings, settings_to_dict
 from utils.styles import get_font, get_stylesheet, get_toggled_style, get_untoggled_style
-from utils.utils import dict_to_settings, settings_to_dict
 
 LOG_PATH = "log.txt"
 DEFAULT_SAVE_PATH = "./saves"
 DEFAULT_EXPORT_PATH = "./exports"
-START_ITERATIONS = 100
-ITERATION_GROWTH = 20
 ESCAPE_RADIUS = 2.0
 
 install_rich_traceback()
@@ -59,16 +56,6 @@ file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(file_formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
-
-
-default_settings = FractalSettings(
-    u=np.array([1, 0, 0, 0, 2, 0], dtype=np.float64),
-    o=np.array([0, 0, 0, 0, 2, 0], dtype=np.float64),
-    v=np.array([0, 1, 0, 0, 2, 0], dtype=np.float64),
-    center=(-0.5, 0),
-    rotation=0,
-    scale=2.5,
-)
 
 
 def rgba_to_rgb(color):
@@ -97,7 +84,9 @@ class FractalWorker(QThread):
             self.resolution,
         )
         sample_time = time()
-        max_iterations = START_ITERATIONS + ITERATION_GROWTH * np.log(1 / self.settings.scale)
+        max_iterations = get_max_iterattions(
+            self.settings.base_iterations, self.settings.iterations_growth, self.settings.scale
+        )
         escape_counts = compute_fractal(
             sampled_points,
             max_iterations=int(max_iterations),
@@ -234,6 +223,24 @@ class FractalApp(QMainWindow):
         history_layout.addWidget(self.create_button("Undo", "Undo last action (Shortcut: Backspace)", self.go_back))
         history_layout.addWidget(self.create_button("Reset", "Reset view (Shortcut: Home)", self.reset_view))
         settings_layout.addLayout(history_layout)
+
+        # Iterations controls
+        iterations_layout = QHBoxLayout()
+        iterations_label = QLabel("Iterations:")
+        iterations_label.setAlignment(Qt.AlignRight)
+        max_iterations = get_max_iterattions(
+            self.settings.base_iterations, self.settings.iterations_growth, self.settings.scale
+        )
+        self.current_iterations_field = QLineEdit(str(int(max_iterations)))
+        self.current_iterations_field.setToolTip("Current max iterations.")
+        self.current_iterations_field.returnPressed.connect(self.update_iterations)
+        self.iterations_growth_field = QLineEdit(str(self.settings.iterations_growth))
+        self.iterations_growth_field.setToolTip("Growth of max iterations dependent on scale.")
+        self.iterations_growth_field.returnPressed.connect(self.update_iterations)
+        iterations_layout.addWidget(iterations_label)
+        iterations_layout.addWidget(self.current_iterations_field)
+        iterations_layout.addWidget(self.iterations_growth_field)
+        settings_layout.addLayout(iterations_layout)
 
         # Visualization controls
         visualization_layout = QHBoxLayout()
@@ -640,6 +647,22 @@ class FractalApp(QMainWindow):
 
         return rotation_group
 
+    def update_iterations(self):
+        try:
+            current_iterations = float(self.current_iterations_field.text())
+            iterations_growth = float(self.iterations_growth_field.text())
+            base_iterations = get_base_iterations(current_iterations, iterations_growth, self.settings.scale)
+        except ValueError as error:
+            logging.error(f"Invalid input in iterations field: {error}")
+            return
+
+        logging.info(
+            f"Updating current iterations to {current_iterations}: base: {base_iterations}, growth: {iterations_growth}"
+        )
+        self.settings.base_iterations = base_iterations
+        self.settings.iterations_growth = iterations_growth
+        self.render_fractal()
+
     def update_uov(self):
         """Update u, o, v vectors from input fields and re-render."""
         try:
@@ -676,6 +699,13 @@ class FractalApp(QMainWindow):
 
         self.rotation_field.setText(str(self.settings.rotation))
         self.rotation_field.setCursorPosition(0)
+
+    def update_iterations_inputs(self):
+        max_iterations = get_max_iterattions(
+            self.settings.base_iterations, self.settings.iterations_growth, self.settings.scale
+        )
+        self.current_iterations_field.setText(str(int(max_iterations)))
+        self.iterations_growth_field.setText(str(self.settings.iterations_growth))
 
     def update_colormap(self, colormap_name):
         """Update the colormap and re-render the fractal."""
@@ -785,6 +815,7 @@ class FractalApp(QMainWindow):
 
         self.update_uov_inputs()
         self.update_movement_inputs()
+        self.update_iterations_inputs()
 
     def get_viewport_dimensions(self):
         viewport_rect = self.graphics_view.viewport().rect()
@@ -1084,6 +1115,8 @@ class FractalApp(QMainWindow):
             options=options,
         )
         if file_path:
+            if not (file_path.endswith(".yaml") or file_path.endswith(".yml")):
+                file_path += ".yaml"
             settings_dict = settings_to_dict(self.settings)
             with open(file_path, "w") as file:
                 yaml.dump(settings_dict, file, default_flow_style=False)
@@ -1145,6 +1178,7 @@ class FractalApp(QMainWindow):
 
     def update_parameter_info_label(self, event):
         if not self.show_parameter_info:
+            self.parameter_info_label.setVisible(False)
             return
 
         mouse_position = self.graphics_view.mapToScene(event.pos())
@@ -1294,7 +1328,7 @@ class FractalApp(QMainWindow):
         if not file_path:
             return
 
-        if not file_path.endswith(".png") or file_path.endswith(".jpg"):
+        if not (file_path.endswith(".png") or file_path.endswith(".jpg")):
             file_path += ".png"
 
         resolution = self.dimensions
