@@ -241,6 +241,17 @@ class FractalApp(QMainWindow):
         iterations_layout.addWidget(self.iterations_growth_field)
         settings_layout.addLayout(iterations_layout)
 
+        # Escape radius controls
+        radius_layout = QHBoxLayout()
+        radius_label = QLabel("Radius:")
+        radius_label.setAlignment(Qt.AlignRight)
+        self.radius_field = QLineEdit(str(self.settings.escape_radius))
+        self.radius_field.setToolTip("Bailout radius.")
+        self.radius_field.returnPressed.connect(self.update_radius)
+        radius_layout.addWidget(radius_label)
+        radius_layout.addWidget(self.radius_field)
+        settings_layout.addLayout(radius_layout)
+
         # Visualization controls
         visualization_layout = QHBoxLayout()
         visualization_layout.addWidget(
@@ -662,6 +673,17 @@ class FractalApp(QMainWindow):
         self.settings.iterations_growth = iterations_growth
         self.render_fractal()
 
+    def update_radius(self):
+        try:
+            escape_radius = float(self.radius_field.text())
+        except ValueError as error:
+            logging.error(f"Invalid input in radius field: {escape_radius}: {error}")
+            return
+
+        logging.info(f"Updating radius to {escape_radius}")
+        self.settings.escape_radius = escape_radius
+        self.render_fractal()
+
     def update_uov(self):
         """Update u, o, v vectors from input fields and re-render."""
         try:
@@ -699,12 +721,19 @@ class FractalApp(QMainWindow):
         self.rotation_field.setText(str(self.settings.rotation))
         self.rotation_field.setCursorPosition(0)
 
+    def update_controls_inputs(self):
+        self.update_iterations_inputs()
+        self.update_radius_inputs()
+
     def update_iterations_inputs(self):
         max_iterations = get_max_iterattions(
             self.settings.base_iterations, self.settings.iterations_growth, self.settings.scale
         )
         self.current_iterations_field.setText(str(int(max_iterations)))
         self.iterations_growth_field.setText(str(self.settings.iterations_growth))
+
+    def update_radius_inputs(self):
+        self.radius_field.setText(str(int(self.settings.escape_radius)))
 
     def update_colormap(self, colormap_name=None):
         """Update the colormap and re-render the fractal."""
@@ -816,9 +845,9 @@ class FractalApp(QMainWindow):
             self.worker.finished.connect(lambda result: self.display_fractal(*result))  # unpack parameters
             self.worker.start()
 
-        self.update_uov_inputs()
+        self.update_controls_inputs()
         self.update_movement_inputs()
-        self.update_iterations_inputs()
+        self.update_uov_inputs()
 
     def get_viewport_dimensions(self):
         viewport_rect = self.graphics_view.viewport().rect()
@@ -1137,6 +1166,7 @@ class FractalApp(QMainWindow):
             options=options,
         )
         self.load_settings(file_path)
+        self.update_colormap()
         self.render_fractal()
 
     def load_settings(self, file_path):
@@ -1144,7 +1174,6 @@ class FractalApp(QMainWindow):
             with open(file_path, "r") as file:
                 settings_dict = yaml.safe_load(file)
                 self.settings = dict_to_settings(settings_dict)
-            self.update_colormap()
             logging.info(f"Settings loaded from {file_path}")
         except BaseException as error:
             logging.error(f"Could not load settings due to: {error}. Loading default.")
