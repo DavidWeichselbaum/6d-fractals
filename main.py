@@ -706,10 +706,13 @@ class FractalApp(QMainWindow):
         self.current_iterations_field.setText(str(int(max_iterations)))
         self.iterations_growth_field.setText(str(self.settings.iterations_growth))
 
-    def update_colormap(self, colormap_name):
+    def update_colormap(self, colormap_name=None):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
-        self.settings.colormap = colormap_name
+        if not colormap_name:
+            colormap_name = self.settings.colormap
+        else:
+            self.settings.colormap = colormap_name
         self.update_interface_color()
         if self.current_escape_counts is not None:
             self.display_fractal(self.current_escape_counts, self.current_sampled_points)
@@ -1141,6 +1144,7 @@ class FractalApp(QMainWindow):
             with open(file_path, "r") as file:
                 settings_dict = yaml.safe_load(file)
                 self.settings = dict_to_settings(settings_dict)
+            self.update_colormap()
             logging.info(f"Settings loaded from {file_path}")
         except BaseException as error:
             logging.error(f"Could not load settings due to: {error}. Loading default.")
