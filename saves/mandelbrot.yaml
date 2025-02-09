@@ -1,27 +1,35 @@
-center:
-- 0
-- 0
-escape_counts: null
-o:
-- 0.0
-- 0.0
-- 0.0
-- 0.0
-- 2.0
-- 0.0
-rotation: 0
-scale: 4.0
-u:
-- 1.0
-- 0.0
-- 0.0
-- 0.0
-- 2.0
-- 0.0
-v:
-- 0.0
-- 1.0
-- 0.0
-- 0.0
-- 2.0
-- 0.0
+basis:
+  o:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 2.0
+  - 0.0
+  u:
+  - 1.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 2.0
+  - 0.0
+  v:
+  - 0.0
+  - 1.0
+  - 0.0
+  - 0.0
+  - 2.0
+  - 0.0
+computation:
+  iterations:
+    base: 119
+    growth: 20
+  radius: 2
+location:
+  center:
+    x: -0.5
+    y: 0
+  rotation: 0
+  scale: 2.5
+presentation:
+  colormap: inferno

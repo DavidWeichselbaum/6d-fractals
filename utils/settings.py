@@ -13,6 +13,8 @@ class FractalSettings:
     scale: float
     base_iterations: float
     iterations_growth: float
+    escape_radius: float
+    colormap: str
     escape_counts: np.ndarray | None = None
     sampled_points: np.ndarray | None = None
 
@@ -26,33 +28,57 @@ default_settings = FractalSettings(
     scale=2.5,
     base_iterations=119,
     iterations_growth=20,
+    escape_radius=2,
+    colormap="inferno",
 )
 
 
 def settings_to_dict(settings):
     """Convert FractalSettings to a dictionary for YAML serialization."""
     return {
-        "points": {
-            "u": settings.u.tolist(),  # Convert numpy array to list
-            "o": settings.o.tolist(),  # Convert numpy array to list
-            "v": settings.v.tolist(),  # Convert numpy array to list
+        "basis": {
+            "u": settings.u.tolist(),
+            "o": settings.o.tolist(),
+            "v": settings.v.tolist(),
         },
-        "center": list(settings.center),  # Convert tuple to list for YAML compatibility
-        "rotation": settings.rotation,
-        "scale": settings.scale,
-        "base_iterations": settings.base_iterations,
+        "location": {
+            "center": {
+                "x": settings.center[0],
+                "y": settings.center[1],
+            },
+            "rotation": settings.rotation,
+            "scale": settings.scale,
+        },
+        "computation": {
+            "iterations": {
+                "base": settings.base_iterations,
+                "growth": settings.iterations_growth,
+            },
+            "radius": settings.escape_radius,
+        },
+        "presentation": {
+            "colormap": settings.colormap,
+        },
     }
 
 
 def dict_to_settings(settings_dict):
     """Convert a dictionary to a FractalSettings object."""
-    points = settings_dict["points"]
+    basis = settings_dict["basis"]
+    location = settings_dict["location"]
+    center = location["center"]
+    computation = settings_dict["computation"]
+    iterations = computation["iterations"]
+    presentation = settings_dict["presentation"]
     return FractalSettings(
-        u=np.array(points["u"]),  # Convert list back to numpy array
-        o=np.array(points["o"]),  # Convert list back to numpy array
-        v=np.array(points["v"]),  # Convert list back to numpy array
-        center=tuple(settings_dict["center"]),  # Convert list back to tuple
-        rotation=settings_dict["rotation"],
-        scale=settings_dict["scale"],
-        base_iterations=settings_dict["base_iterations"],
+        u=np.array(basis["u"]),  # Convert list back to numpy array
+        o=np.array(basis["o"]),  # Convert list back to numpy array
+        v=np.array(basis["v"]),  # Convert list back to numpy array
+        center=(center["x"], center["y"]),
+        rotation=location["rotation"],
+        scale=location["scale"],
+        base_iterations=iterations["base"],
+        iterations_growth=iterations["growth"],
+        escape_radius=computation["radius"],
+        colormap=presentation["colormap"],
     )

@@ -41,7 +41,6 @@ from utils.styles import get_font, get_stylesheet, get_toggled_style, get_untogg
 LOG_PATH = "log.txt"
 DEFAULT_SAVE_PATH = "./saves"
 DEFAULT_EXPORT_PATH = "./exports"
-ESCAPE_RADIUS = 2.0
 
 install_rich_traceback()
 
@@ -90,7 +89,7 @@ class FractalWorker(QThread):
         escape_counts = compute_fractal(
             sampled_points,
             max_iterations=int(max_iterations),
-            escape_radius=ESCAPE_RADIUS,
+            escape_radius=self.settings.escape_radius,
         )
         end_time = time()
         logging.info(
@@ -128,7 +127,7 @@ class FractalApp(QMainWindow):
         self.basis_vector_pixmap = None
         self.show_parameter_info = False
 
-        self.update_colormap("inferno")
+        self.update_colormap(self.settings.colormap)
         self.init_ui()
         self.reset_view()
 
@@ -710,19 +709,20 @@ class FractalApp(QMainWindow):
     def update_colormap(self, colormap_name):
         """Update the colormap and re-render the fractal."""
         logging.info(f"Changing colormap to: {colormap_name}")
-        self.colormap = colormaps.get_cmap(colormap_name)
+        self.settings.colormap = colormap_name
         self.update_interface_color()
         if self.current_escape_counts is not None:
             self.display_fractal(self.current_escape_counts, self.current_sampled_points)
 
     def update_interface_color(self):
         """Update the interface colors to match the colormap."""
-        selector_color = self.colormap(0.5)
+        colormap = colormaps.get_cmap(self.settings.colormap)
+        selector_color = colormap(0.5)
 
-        r_text, g_text, b_text = rgba_to_rgb(self.colormap(0.5))
-        r_bg, g_bg, b_bg = rgba_to_rgb(self.colormap(0.0))
-        r_border, g_border, b_border = rgba_to_rgb(self.colormap(0.3))
-        r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(self.colormap(0.1))
+        r_text, g_text, b_text = rgba_to_rgb(colormap(0.5))
+        r_bg, g_bg, b_bg = rgba_to_rgb(colormap(0.0))
+        r_border, g_border, b_border = rgba_to_rgb(colormap(0.3))
+        r_input_bg, g_input_bg, b_input_bg = rgba_to_rgb(colormap(0.1))
 
         color_variables = {
             "r_text": r_text,
@@ -849,7 +849,8 @@ class FractalApp(QMainWindow):
         min_val = escape_counts.min()
         max_val = escape_counts.max()
         normalized = (escape_counts - min_val) / (max_val - min_val)
-        image_array = (self.colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
+        colormap = colormaps.get_cmap(self.settings.colormap)
+        image_array = (colormap(normalized)[:, :, :3] * 255).astype(np.uint8)
         return image_array
 
     def zoom_in(self):
